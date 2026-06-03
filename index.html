@@ -236,7 +236,7 @@
 
   /* ── PREVIEW ── */
   .preview-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: #d0d0d0; }
-  .preview-scaler { transform-origin: top left; transform: scale(0.62); width: 161.3%; pointer-events: none; }
+  .preview-scaler { transform-origin: top left; transform: scale(0.62); width: 161.3%; pointer-events: auto; user-select: text; }
   .preview-wrap iframe { width: 100%; min-height: 1100px; border: none; display: block; background: #fff; }
   .code-area { font-family: var(--mono); font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; width: 100%; color: var(--text2); resize: vertical; min-height: 300px; outline: none; }
 
@@ -386,7 +386,6 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
         </button>
       </div>
-      <p class="hint">Publish your Google Sheet as CSV and paste the URL here. <a href="#" onclick="showSheetsHelp();return false;" style="color:var(--accent)">How?</a></p>
     </div>
 
     <div class="form-row cols-2" style="margin-bottom:10px">
@@ -411,11 +410,10 @@
     <div class="form-group">
       <label>Venue ID (Discovery API)</label>
       <input type="text" id="venueId" placeholder="e.g., KovZpZAEkJ7A" oninput="scheduleSearch()">
-      <p class="hint">Auto-filled when you select a venue above, or enter manually.</p>
+      <p class="hint"><a href="https://venue-id-lookup.netlify.app/" target="_blank" rel="noopener noreferrer" style="color:var(--accent)">Venue ID Lookup Tool</a></p>
     </div>
 
-    <div class="section-rule">Location</div>
-    <p class="hint" style="margin-top:-6px;margin-bottom:10px">Search by city, state, or both. All fields optional if Venue ID is provided.</p>
+    <div class="section-rule">Location <span class="badge-opt">optional</span></div>
 
     <div class="form-row cols-2" style="margin-bottom:10px">
       <div class="form-group" style="margin-bottom:0">
@@ -609,6 +607,10 @@
                       <div class="divider"></div>
                       <p class="section-title" style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px">Spotlight Content</p>
                       <div class="form-group">
+                        <label>Prefix (above title)</label>
+                        <input type="text" id="spotlightPrefix" oninput="updateSpotlightPrefix()" placeholder="Optional descriptor">
+                      </div>
+                      <div class="form-group">
                         <label>Section Header</label>
                         <input type="text" id="spotlightHeaderText" value="SPOTLIGHT SHOW" oninput="regenerate()" placeholder="SPOTLIGHT SHOW">
                         <p class="hint">Text shown above the spotlight image</p>
@@ -728,7 +730,7 @@
                 </div>
               </div>
               <div class="card-body">
-                <div id="previewPane"><div class="preview-wrap" style="height:680px;overflow:hidden"><div class="preview-scaler"><iframe id="previewFrame" title="Email Preview"></iframe></div></div></div>
+                <div id="previewPane"><div class="preview-wrap" style="height:680px;overflow-y:auto"><div class="preview-scaler"><iframe id="previewFrame" title="Email Preview"></iframe></div></div></div>
                 <div id="codePane" style="display:none"><textarea class="code-area" id="htmlOutput" readonly rows="20"></textarea></div>
                 <div class="flex gap-2 mt-2">
                   <button class="btn btn-outline flex-1" id="copyBtn" onclick="copyHTML()">
@@ -1271,7 +1273,21 @@ function renderSpotlightList() {
   }).join('');
 }
 
-function setSpotlight(id) { spotlightEventId=id; renderSpotlightList(); regenerate(); }
+function setSpotlight(id) {
+  spotlightEventId=id;
+  // Sync prefix field from per-event override if one exists
+  const ov=eventOverrides[id]||{};
+  setField('spotlightPrefix', ov.prefix||'');
+  renderSpotlightList(); regenerate();
+}
+function updateSpotlightPrefix() {
+  if (!spotlightEventId) return;
+  if (!eventOverrides[spotlightEventId]) eventOverrides[spotlightEventId]={};
+  const val=v('spotlightPrefix');
+  if (val) eventOverrides[spotlightEventId].prefix=val;
+  else delete eventOverrides[spotlightEventId].prefix;
+  regenerate();
+}
 
 // -- EDIT EVENTS --
 function renderEditEventsList() {
@@ -1395,7 +1411,12 @@ async function readImageFile(file, id) {
   }
 }
 
+let _regenerateTimer = null;
 function regenerate() {
+  clearTimeout(_regenerateTimer);
+  _regenerateTimer = setTimeout(_regenerateNow, 1000);
+}
+function _regenerateNow() {
   const src = selectedEvents.length>0?selectedEvents:allEvents;
   const max = parseInt(v('maxEvents'))||100;
   if (!src.length) { generatedHTML=''; updateOutput(); return; }
@@ -1429,6 +1450,7 @@ function regenerate() {
   if (hasSpotlight&&spotlightEv) {
     const ov=eventOverrides[spotlightEv.id]||{};
     const title=v('spotlightTitle')||ov.title||spotlightEv.name;
+    const spotlightPrefixVal=v('spotlightPrefix')||ov.prefix||'';
     const dateStr=formatDate(spotlightEv.dates.start.localDate);
     const timeStr=cfg.showTime?formatTime(spotlightEv.dates.start.localTime||''):'';
     const defDate=timeStr?`${dateStr} - ${timeStr}`:dateStr;
@@ -1439,7 +1461,7 @@ function regenerate() {
     html+=`<tr><td align="center" style="padding:20px 20px 10px 20px;background-color:${cfg.bg};"><h2 style="margin:0;font-family:${cfg.font};font-size:24px;font-weight:bold;color:${cfg.text};text-transform:uppercase;letter-spacing:2px;">${v('spotlightHeaderText')||'SPOTLIGHT SHOW'}</h2></td></tr>
         <tr><td align="center" style="padding:10px 20px;background-color:${cfg.bg};"><a href="${url}" target="_blank" style="display:block;"><img src="${imgUrl}" alt="${escQ(spotlightEv.name)}" width="${cfg.cw-40}" style="display:block;max-width:100%;height:auto;"/></a></td></tr>
         <tr><td align="center" style="padding:20px;background-color:${cfg.bg};">
-          ${ov.prefix?`<p style="margin:0 0 4px 0;font-family:${cfg.font};font-size:14px;color:${cfg.text};">${ov.prefix}</p>`:''}
+          ${spotlightPrefixVal?`<p style="margin:0 0 4px 0;font-family:${cfg.font};font-size:14px;color:${cfg.text};">${spotlightPrefixVal}</p>`:''}
           <h2 style="margin:0;font-family:${cfg.font};font-size:${cfg.hSize}px;font-weight:bold;color:${cfg.heading};text-transform:uppercase;">${title}</h2>
           ${ov.titleBreak?`<h2 style="margin:0;font-family:${cfg.font};font-size:${cfg.hSize}px;font-weight:bold;color:${cfg.heading};text-transform:uppercase;">${ov.titleBreak}</h2>`:''}
           ${ov.subtitle?`<p style="margin:4px 0 0 0;font-family:${cfg.font};font-size:14px;color:${cfg.text};">${ov.subtitle}</p>`:''}
@@ -1544,7 +1566,13 @@ function formatTime(t) {
   const [h,m]=t.split(':'); const hr=parseInt(h);
   return `${hr%12||12}:${m} ${hr>=12?'PM':'AM'}`;
 }
-function getVenueName(ev) { return ev._embedded?.venues?.[0]?.name||''; }
+function cleanVenueName(name) {
+  if (!name) return '';
+  // Normalize "The Fillmore <City>" → "The Fillmore"
+  if (/^The Fillmore\s+\S/i.test(name)) return 'The Fillmore';
+  return name;
+}
+function getVenueName(ev) { return cleanVenueName(ev._embedded?.venues?.[0]?.name||''); }
 const STATE_MAP={Alabama:'AL',Alaska:'AK',Arizona:'AZ',Arkansas:'AR',California:'CA',Colorado:'CO',Connecticut:'CT',Delaware:'DE',Florida:'FL',Georgia:'GA',Hawaii:'HI',Idaho:'ID',Illinois:'IL',Indiana:'IN',Iowa:'IA',Kansas:'KS',Kentucky:'KY',Louisiana:'LA',Maine:'ME',Maryland:'MD',Massachusetts:'MA',Michigan:'MI',Minnesota:'MN',Mississippi:'MS',Missouri:'MO',Montana:'MT',Nebraska:'NE',Nevada:'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND',Ohio:'OH',Oklahoma:'OK',Oregon:'OR',Pennsylvania:'PA','Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD',Tennessee:'TN',Texas:'TX',Utah:'UT',Vermont:'VT',Virginia:'VA',Washington:'WA','West Virginia':'WV',Wisconsin:'WI',Wyoming:'WY','District of Columbia':'DC'};
 function getCityState(ev) {
   const vn=ev._embedded?.venues?.[0]; if(!vn) return '';
@@ -1634,7 +1662,7 @@ function buildCampaignData(name) {
     spotlightEventId, spotlightEnabled:ge('spotlightEnabled').checked,
     eventOverrides, imageOverrides,
     emailConfig:{
-      spotlightHeaderText:v('spotlightHeaderText'),spotlightTitle:v('spotlightTitle'),spotlightSubtitle:v('spotlightSubtitle'),
+      spotlightHeaderText:v('spotlightHeaderText'),spotlightPrefix:v('spotlightPrefix'),spotlightTitle:v('spotlightTitle'),spotlightSubtitle:v('spotlightSubtitle'),
       spotlightButtonText:v('spotlightButtonText'),spotlightShowVenue:ge('spotlightShowVenue').checked,
       comingSoonHeaderText:v('comingSoonHeaderText'),showImage:ge('showImage').checked,showDate:ge('showDate').checked,
       showTime:ge('showTime').checked,showVenue:ge('showVenue').checked,showButton:ge('showButton').checked,
@@ -1666,6 +1694,7 @@ async function applyCampaignData(data) {
   spotlightEventId=data.spotlightEventId||null;
   const cfg=data.emailConfig||{};
   setField('spotlightHeaderText',cfg.spotlightHeaderText??'SPOTLIGHT SHOW');
+  setField('spotlightPrefix',cfg.spotlightPrefix??'');
   setField('spotlightTitle',cfg.spotlightTitle??''); setField('spotlightSubtitle',cfg.spotlightSubtitle??'');
   setField('spotlightButtonText',cfg.spotlightButtonText??'Buy Now');
   setCheck('spotlightShowVenue',cfg.spotlightShowVenue);
