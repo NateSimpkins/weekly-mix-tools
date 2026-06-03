@@ -759,6 +759,8 @@
 
 <script>
 const API_KEY = 'YrzFaMA83jmEAY4tm0gQJz7SioutA1kU';
+const CLOUDINARY_CLOUD_NAME = 'drhdiuluw';
+const CLOUDINARY_UPLOAD_PRESET = 'weekly_mix_unsigned';
 const TM_BASE = 'https://app.ticketmaster.com/discovery/v2';
 const DIVIDER_IMG = 'https://assets.engagement.ticketmaster.com/images/properties/4261/images/6994def69cfea.png';
 const TW_LOGO = 'https://assets.engagement.ticketmaster.com/images/properties/4261/images/66e468d64cd5c.png';
@@ -1359,34 +1361,38 @@ function handleImgFile(event, id) {
   event.target.value = '';
 }
 
-function readImageFile(file, id) {
+async function readImageFile(file, id) {
   const zone = document.getElementById('dropzone-' + id);
   if (zone) zone.classList.add('uploading');
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const dataUrl = e.target.result;
-    imageOverrides[id] = dataUrl;
-    // Update URL field too
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+    const data = await res.json();
+    const url = data.secure_url;
+    imageOverrides[id] = url;
     const urlField = document.getElementById('imgurl-' + id);
-    if (urlField) urlField.value = '';
+    if (urlField) urlField.value = url;
     if (zone) {
       zone.classList.remove('uploading');
       zone.classList.add('has-image');
-      zone.querySelector('.drop-label').innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span style="color:var(--accent)">Custom image set — ' + file.name + '</span>';
+      zone.querySelector('.drop-label').innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span style="color:var(--accent)">Uploaded — ' + file.name + '</span>';
     }
     regenerate();
-    // Update modified badge
     const card = document.getElementById('eecard-' + id);
     if (card) {
       const modified = Object.keys(eventOverrides[id] || {}).length > 0 || !!imageOverrides[id];
       card.className = 'edit-event-card ' + (modified ? 'modified' : '');
     }
-  };
-  reader.onerror = () => {
+  } catch (e) {
     if (zone) zone.classList.remove('uploading');
-    showToast('Failed to read image file', 'error');
-  };
-  reader.readAsDataURL(file);
+    showToast('Image upload failed: ' + e.message, 'error');
+  }
 }
 
 function regenerate() {
