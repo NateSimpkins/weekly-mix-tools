@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Campaign Creator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #080b11;
+    --surface: #0f1219;
+    --surface2: #141926;
+    --surface3: #1a2030;
+    --border: #1e2535;
+    --border2: #2a3448;
+    --border3: #3a4560;
+    --text: #eceef5;
+    --text2: #a0a8bf;
+    --text3: #5a6480;
+    --text4: #3a4255;
+    --accent: #026cdf;
+    --accent2: #0358bc;
+    --accent3: #0246a0;
+    --accent-light: rgba(2,108,223,0.14);
+    --accent-lighter: rgba(2,108,223,0.07);
+    --accent-border: rgba(2,108,223,0.35);
+    --yellow: #f5a623;
+    --yellow-light: rgba(245,166,35,0.13);
+    --yellow-border: rgba(245,166,35,0.35);
+    --green: #22c55e;
+    --green-light: rgba(34,197,94,0.12);
+    --red: #ef4444;
+    --red-light: rgba(239,68,68,0.1);
+    --radius: 8px;
+    --radius-lg: 11px;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+  /* ── HEADER ── */
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 13px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .app-header h1 { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; color: var(--text); }
+  .app-header p { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .header-actions { display: flex; gap: 7px; align-items: center; }
+
+  /* ── LAYOUT ── */
+  .main-layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 53px); }
+  .sidebar { background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 0; }
+  .content-area { overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── SECTION HEADER (blue ruled) ── */
+  .section-rule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0 10px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+  }
+  .section-rule:first-child { margin-top: 0; }
+  .section-rule::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .section-rule .badge-opt {
+    background: var(--accent-light);
+    color: #5ba3f5;
+    border: 1px solid var(--accent-border);
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  /* ── CARDS ── */
+  .card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .card-header { padding: 11px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-header h3 { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+  .card-body { padding: 14px; }
+
+  /* ── FORMS ── */
+  label { display: block; font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 4px; }
+  input[type="text"], input[type="number"], input[type="date"], select, textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    appearance: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-lighter); }
+  input::placeholder, textarea::placeholder { color: var(--text4); }
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235a6480' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    padding-right: 26px;
+  }
+  .form-row { display: grid; gap: 9px; }
+  .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; margin-bottom: 10px; }
+  .form-group:last-child { margin-bottom: 0; }
+  .hint { font-size: 10px; color: var(--text3); margin-top: 4px; line-height: 1.4; }
+  textarea { resize: vertical; min-height: 58px; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    padding: 7px 13px; border-radius: var(--radius); font-family: var(--font);
+    font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid transparent;
+    transition: all 0.14s; white-space: nowrap;
+  }
+  .btn svg { flex-shrink: 0; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+  .btn-outline { background: transparent; color: var(--text2); border-color: var(--border2); }
+  .btn-outline:hover { background: var(--surface3); color: var(--text); border-color: var(--border3); }
+  .btn-ghost { background: transparent; color: var(--text3); border-color: transparent; }
+  .btn-ghost:hover { background: var(--surface3); color: var(--text2); }
+  .btn-danger { background: var(--red-light); color: var(--red); border-color: transparent; }
+  .btn-danger:hover { background: rgba(239,68,68,0.18); }
+  .btn-success { background: var(--green-light); color: var(--green); border-color: transparent; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-xs { padding: 3px 7px; font-size: 11px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 2px; background: var(--bg); border-radius: var(--radius); padding: 3px; }
+  .tab-btn { flex: 1; padding: 6px 10px; border: none; border-radius: 6px; font-family: var(--font); font-size: 12px; font-weight: 500; cursor: pointer; background: transparent; color: var(--text3); transition: all 0.14s; }
+  .tab-btn.active { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── TOGGLE ── */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface3); }
+  .toggle-row label { margin: 0; font-size: 12px; color: var(--text2); font-weight: 400; cursor: pointer; }
+  .switch { position: relative; display: inline-block; width: 34px; height: 19px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: var(--border3); border-radius: 20px; cursor: pointer; transition: 0.2s; }
+  .slider::before { content: ''; position: absolute; width: 13px; height: 13px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+  input:checked + .slider { background: var(--accent); }
+  input:checked + .slider::before { transform: translateX(15px); }
+
+  /* ── BADGES ── */
+  .badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-default { background: var(--accent-light); color: #5ba3f5; border: 1px solid var(--accent-border); }
+  .badge-secondary { background: var(--surface3); color: var(--text2); border: 1px solid var(--border2); }
+  .badge-yellow { background: var(--yellow-light); color: var(--yellow); border: 1px solid var(--yellow-border); }
+  .badge-green { background: var(--green-light); color: var(--green); }
+
+  /* ── EVENT ITEMS ── */
+  .event-item { display: flex; align-items: flex-start; gap: 9px; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all 0.13s; background: var(--surface3); margin-bottom: 5px; }
+  .event-item:last-child { margin-bottom: 0; }
+  .event-item:hover { border-color: var(--border3); background: var(--surface2); }
+  .event-item.selected { border-color: var(--accent-border); background: var(--accent-lighter); }
+  .event-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--border); }
+  .event-info { flex: 1; min-width: 0; }
+  .event-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .event-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* ── CHECKBOX ── */
+  .checkbox { width: 15px; height: 15px; border: 1.5px solid var(--border3); border-radius: 4px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.13s; margin-top: 2px; }
+  .checkbox.checked { background: var(--accent); border-color: var(--accent); }
+  .checkbox.checked::after { content: ''; width: 8px; height: 5px; border-left: 2px solid white; border-bottom: 2px solid white; transform: rotate(-45deg) translateY(-1px); }
+
+  /* ── SELECTED EVENT ROW (with arrows) ── */
+  .sel-event-row { display: flex; align-items: center; gap: 7px; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface3); margin-bottom: 5px; transition: all 0.13s; }
+  .sel-event-row.dragging { opacity: 0.4; border-style: dashed; }
+  .sel-event-row.drag-over { border-color: var(--accent); background: var(--accent-light); transform: scale(1.01); }
+  .drag-grip { cursor: grab; color: var(--text4); display: flex; align-items: center; padding: 2px; flex-shrink: 0; }
+  .drag-grip:active { cursor: grabbing; }
+  .sel-event-row:last-child { margin-bottom: 0; }
+  .sel-event-row:hover { border-color: var(--border2); }
+  .arrow-btns { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+  .arrow-btn { width: 20px; height: 20px; border: 1px solid var(--border2); border-radius: 5px; background: var(--surface2); color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.13s; flex-shrink: 0; }
+  .arrow-btn:hover { background: var(--accent-light); border-color: var(--accent-border); color: #5ba3f5; }
+  .arrow-btn.disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
+  .sel-num { width: 20px; height: 20px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: var(--text2); flex-shrink: 0; }
+  .sel-event-row img { width: 38px; height: 38px; object-fit: cover; border-radius: 5px; flex-shrink: 0; background: var(--border); }
+  .sel-ev-info { flex: 1; min-width: 0; }
+  .sel-ev-name { font-size: 12px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sel-ev-date { font-size: 11px; color: var(--text3); }
+
+  /* ── SEARCH ── */
+  .search-wrap { position: relative; margin-bottom: 8px; }
+  .search-wrap svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text4); pointer-events: none; }
+  .search-wrap input { padding-left: 28px; }
+
+  /* ── SCROLL ── */
+  .scroll-area { overflow-y: auto; }
+  .scroll-area::-webkit-scrollbar { width: 4px; }
+  .scroll-area::-webkit-scrollbar-track { background: transparent; }
+  .scroll-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── VENUE PANEL ── */
+  .venue-panel { background: var(--surface3); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; }
+  .venue-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .venue-panel-header span { font-size: 11px; font-weight: 600; color: var(--text2); }
+  .venue-links { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .venue-link { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 500; text-decoration: none; border: 1px solid var(--border2); color: var(--text2); background: var(--surface2); transition: all 0.13s; cursor: pointer; }
+  .venue-link:hover { border-color: var(--accent-border); color: #5ba3f5; background: var(--accent-light); }
+  .venue-link.tw { border-color: rgba(245,166,35,0.3); color: var(--yellow); background: var(--yellow-light); }
+  .venue-link.tw:hover { border-color: var(--yellow-border); }
+  .sheets-status { font-size: 11px; display: flex; align-items: center; gap: 5px; }
+  .sheets-status.ok { color: var(--green); }
+  .sheets-status.err { color: var(--red); }
+  .sheets-status.loading { color: var(--text3); }
+  #venueQuickLinks { display: none; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+  /* ── PREVIEW ── */
+  .preview-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: #d0d0d0; }
+  .preview-scaler { transform-origin: top left; transform: scale(0.62); width: 161.3%; pointer-events: none; }
+  .preview-wrap iframe { width: 100%; min-height: 1100px; border: none; display: block; background: #fff; }
+  .code-area { font-family: var(--mono); font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; width: 100%; color: var(--text2); resize: vertical; min-height: 300px; outline: none; }
+
+  /* ── SPOTLIGHT LIST ── */
+  .spotlight-event { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: all 0.13s; background: var(--surface3); margin-bottom: 5px; }
+  .spotlight-event:hover { border-color: var(--border2); }
+  .spotlight-event.active { border-color: var(--yellow-border); background: var(--yellow-light); }
+  .spotlight-event .ev-name { font-size: 12px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+  .spotlight-event .ev-date { font-size: 11px; color: var(--text3); }
+
+  /* ── EDIT EVENT ── */
+  .edit-event-card { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--surface3); margin-bottom: 6px; }
+  .edit-event-card.modified { border-color: var(--accent-border); }
+  .edit-event-header { display: flex; align-items: center; gap: 9px; padding: 9px 12px; cursor: pointer; user-select: none; }
+  .edit-event-header .ev-title { user-select: text; cursor: text; }
+  .edit-event-header img { width: 46px; height: 34px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--border); }
+  .edit-event-header .ev-title { flex: 1; min-width: 0; }
+  .edit-event-header .ev-title p { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); user-select: text; cursor: text; }
+  .edit-event-header .ev-title span { font-size: 11px; color: var(--text3); }
+  .edit-event-body { padding: 12px; border-top: 1px solid var(--border); display: none; }
+  .edit-event-body.open { display: block; }
+  .edit-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .edit-fields .full { grid-column: 1 / -1; }
+  .field-label { font-size: 10px; color: var(--text3); margin-bottom: 3px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+  .edit-fields input { font-size: 12px; padding: 6px 8px; }
+
+  /* ── IMAGE DROP ZONE ── */
+  .img-drop-zone { position: relative; border: 1.5px dashed var(--border3); border-radius: var(--radius); padding: 10px 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: var(--bg); }
+  .img-drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .img-drop-zone:hover { border-color: var(--accent-border); background: var(--accent-lighter); }
+  .img-drop-zone.dragover { border-color: var(--accent); background: var(--accent-light); border-style: solid; }
+  .img-drop-zone.has-image { border-color: rgba(34,197,94,0.4); background: var(--green-light); }
+  .img-drop-zone.uploading { opacity: 0.6; pointer-events: none; }
+  .drop-label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text3); pointer-events: none; }
+
+  /* ── COLOR INPUT ── */
+  .color-row { display: flex; align-items: center; gap: 7px; }
+  .color-row input[type="color"] { width: 30px; height: 30px; padding: 2px; border-radius: 6px; border: 1px solid var(--border2); background: var(--bg); cursor: pointer; flex-shrink: 0; }
+  .color-row input[type="text"] { flex: 1; }
+
+  /* ── TOAST ── */
+  #toast { position: fixed; bottom: 20px; right: 20px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 9px 15px; font-size: 13px; color: var(--text); opacity: 0; transform: translateY(6px); transition: all 0.18s; z-index: 999; pointer-events: none; }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.success { border-color: rgba(34,197,94,0.4); color: var(--green); }
+  #toast.error { border-color: rgba(239,68,68,0.4); color: var(--red); }
+
+  /* ── SPINNER ── */
+  .spinner { width: 15px; height: 15px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 16px; color: var(--text3); text-align: center; gap: 8px; }
+  .empty-state svg { opacity: 0.35; }
+  .empty-state p { font-size: 13px; color: var(--text3); }
+
+  /* ── MODAL ── */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-lg); padding: 22px; width: 390px; max-width: calc(100vw - 40px); }
+  .modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 5px; color: var(--text); }
+  .modal p { font-size: 13px; color: var(--text2); margin-bottom: 14px; }
+  .modal-actions { display: flex; gap: 7px; justify-content: flex-end; }
+
+  /* ── UTILS ── */
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .gap-2 { gap: 8px; }
+  .flex-1 { flex: 1; }
+  .min-w-0 { min-width: 0; }
+  .mt-2 { margin-top: 8px; }
+  .mt-3 { margin-top: 12px; }
+  .space-y > * + * { margin-top: 10px; }
+  .text-sm { font-size: 12px; color: var(--text2); }
+  .text-danger { color: var(--red); }
+  .w-full { width: 100%; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+</style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- SAVE MODAL -->
+<div class="modal-bg" id="saveModal">
+  <div class="modal">
+    <h3>Save Campaign</h3>
+    <p>Give this campaign a name to identify it when you reload it.</p>
+    <div style="margin-bottom:14px">
+      <label>Campaign Name</label>
+      <input type="text" id="saveCampaignName" placeholder="e.g., Denver June 2025">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSave()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Download JSON
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="app-header">
+  <div>
+    <h1>Email Campaign Creator</h1>
+    <p>Powered by Ticketmaster Discovery API</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" id="restoreBtn" onclick="restoreSession()" style="display:none" title="Reload the last auto-saved state">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+      Restore Session
+    </button>
+    <button class="btn btn-ghost btn-sm" onclick="newCampaign()" title="Clear everything and start fresh">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Campaign
+    </button>
+    <button class="btn btn-outline btn-sm" onclick="triggerLoad()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Load Campaign
+    </button>
+    <button class="btn btn-outline btn-sm" onclick="openSaveModal()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Save Campaign
+    </button>
+    <input type="file" id="loadFileInput" accept=".json" style="display:none" onchange="loadCampaignFile(event)">
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main-layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div class="section-rule">Venue List</div>
+
+    <div class="form-group" style="margin-bottom:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <label style="margin:0">Google Sheets URL</label>
+        <span id="sheetsStatus" class="sheets-status"></span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="sheetsUrl" placeholder="Paste your published Google Sheets CSV URL" style="font-size:11px" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vQJtz4DpKR8ImmSZ2QOJPgzeQZDuY-72NiDR65Dq9K-p-myyqKSGqBhLubdKjjboad0llw6QfPFKDfB/pub?gid=827949005&single=true&output=csv">
+        <button class="btn btn-outline btn-sm" onclick="loadSheets()" style="flex-shrink:0;padding:6px 10px" title="Load venues">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+        </button>
+      </div>
+      <p class="hint">Publish your Google Sheet as CSV and paste the URL here. <a href="#" onclick="showSheetsHelp();return false;" style="color:var(--accent)">How?</a></p>
+    </div>
+
+    <div class="form-row cols-2" style="margin-bottom:10px">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Market</label>
+        <select id="marketSelect" onchange="selectMarket()">
+          <option value="">— Select Market —</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Venue</label>
+        <select id="venueSelect" onchange="selectVenue()">
+          <option value="">— All in Market —</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="venueQuickLinks"></div>
+
+    <div class="section-rule">Event Search</div>
+
+    <div class="form-group">
+      <label>Venue ID (Discovery API)</label>
+      <input type="text" id="venueId" placeholder="e.g., KovZpZAEkJ7A" oninput="scheduleSearch()">
+      <p class="hint">Auto-filled when you select a venue above, or enter manually.</p>
+    </div>
+
+    <div class="section-rule">Location</div>
+    <p class="hint" style="margin-top:-6px;margin-bottom:10px">Search by city, state, or both. All fields optional if Venue ID is provided.</p>
+
+    <div class="form-row cols-2" style="margin-bottom:10px">
+      <div class="form-group" style="margin-bottom:0">
+        <label>City</label>
+        <input type="text" id="city" placeholder="e.g., Denver" oninput="scheduleSearch(); autoHeader()">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>State</label>
+        <input type="text" id="stateCode" placeholder="CO" maxlength="2" oninput="this.value=this.value.toUpperCase(); scheduleSearch()">
+        <p class="hint">2-letter code</p>
+      </div>
+    </div>
+
+    <div class="form-row cols-2" style="margin-bottom:10px">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Keyword</label>
+        <input type="text" id="keyword" placeholder="Artist, venue, show..." oninput="scheduleSearch()">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Category</label>
+        <select id="classificationName" onchange="scheduleSearch()">
+          <option value="">All Categories</option>
+          <option value="Music">Music</option>
+          <option value="Sports">Sports</option>
+          <option value="Arts &amp; Theatre">Arts &amp; Theatre</option>
+          <option value="Film">Film</option>
+          <option value="Comedy">Comedy</option>
+          <option value="Family">Family</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-rule">Date Range <span class="badge-opt">optional</span></div>
+
+    <div class="form-row cols-2" style="margin-bottom:4px">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Start Date</label>
+        <input type="date" id="startDate" onchange="scheduleSearch()">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>End Date</label>
+        <input type="date" id="endDate" onchange="scheduleSearch()">
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <p class="hint" style="margin:0">Pre-filled today → +30 days. Edit anytime.</p>
+      <button class="btn btn-ghost btn-xs" onclick="clearDates()" style="font-size:10px;color:var(--text3);padding:2px 6px">Clear</button>
+    </div>
+
+    <div class="form-row cols-2" style="margin-bottom:0">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Results Per Page</label>
+        <select id="pageSize" onchange="scheduleSearch()">
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Max Events</label>
+        <input type="number" id="maxEvents" value="100" min="1" max="500">
+      </div>
+    </div>
+
+    <div id="searchStatus" style="display:none;margin-top:12px" class="flex items-center gap-2 text-sm">
+      <div class="spinner"></div>
+      <span>Fetching events...</span>
+    </div>
+    <div id="searchError" style="display:none;margin-top:8px;font-size:12px;color:var(--red)"></div>
+
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content-area">
+
+    <div id="resultsHeader" style="display:none" class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span id="resultsTitle" style="font-size:15px;font-weight:600;color:var(--text)"></span>
+        <span id="eventsFoundBadge" class="badge badge-secondary"></span>
+        <span id="selectedCountBadge" class="badge badge-default" style="display:none"></span>
+      </div>
+    </div>
+
+    <div id="mainContent" style="display:none">
+      <div style="margin-bottom:12px">
+        <div class="tabs" style="max-width:300px">
+          <button class="tab-btn active" onclick="switchMainTab('select',this)">Select Events</button>
+          <button class="tab-btn" onclick="switchMainTab('email',this)">Email Campaign</button>
+        </div>
+      </div>
+
+      <!-- SELECT TAB -->
+      <div id="tab-select" class="tab-content active">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Available Events</h3>
+              <span id="availableBadge" class="badge badge-secondary">0 events</span>
+            </div>
+            <div class="card-body" style="padding-bottom:8px">
+              <div class="search-wrap">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="eventSearch" placeholder="Search events..." oninput="filterEvents()">
+              </div>
+              <div class="form-row cols-2" style="margin-bottom:8px">
+                <select id="venueFilter" onchange="filterEvents()"><option value="">All Venues</option></select>
+                <select id="sortSelect" onchange="filterEvents()">
+                  <option value="date-asc">Date (Earliest)</option>
+                  <option value="date-desc">Date (Latest)</option>
+                  <option value="name-asc">Name (A–Z)</option>
+                  <option value="name-desc">Name (Z–A)</option>
+                </select>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btn-outline btn-sm flex-1" onclick="selectAll()">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Select All
+                </button>
+                <button class="btn btn-outline btn-sm flex-1" onclick="deselectAll()">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  Deselect All
+                </button>
+              </div>
+            </div>
+            <div class="scroll-area" style="max-height:490px;padding:0 12px 12px" id="availableList">
+              <div class="empty-state">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                <p>Search for events to get started</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>Selected for Campaign</h3>
+              <div class="flex items-center gap-2">
+                <span id="selectedBadge" class="badge badge-default">0 selected</span>
+                <button class="btn btn-ghost btn-xs" onclick="clearSelected()" id="clearSelBtn" style="display:none">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="card-body" style="padding:9px 12px">
+              <p class="text-sm" style="color:var(--text3)">Use arrows to reorder. Order here = order in your email.</p>
+            </div>
+            <div class="scroll-area" style="max-height:513px;padding:0 12px 12px" id="selectedList">
+              <div class="empty-state">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <p>No events selected yet.<br>Select events from the left.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- EMAIL TAB -->
+      <div id="tab-email" class="tab-content">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start">
+
+          <div class="space-y">
+            <div class="card">
+              <div class="card-body">
+                <div class="tabs">
+                  <button class="tab-btn active" onclick="switchEmailTab('spotlight',this)">Spotlight</button>
+                  <button class="tab-btn" onclick="switchEmailTab('edit',this)">Edit Events</button>
+                  <button class="tab-btn" onclick="switchEmailTab('content',this)">Content</button>
+                  <button class="tab-btn" onclick="switchEmailTab('branding',this)">Branding</button>
+                </div>
+
+                <!-- SPOTLIGHT -->
+                <div id="etab-spotlight" class="tab-content active" style="margin-top:14px">
+                  <div class="space-y">
+                    <div class="toggle-row">
+                      <div>
+                        <label style="font-size:13px;color:var(--text);font-weight:500;display:flex;align-items:center;gap:5px;margin:0;cursor:pointer">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                          Enable Spotlight Show
+                        </label>
+                        <p class="hint" style="margin-top:2px;margin-left:18px">Feature one event prominently at the top</p>
+                      </div>
+                      <label class="switch"><input type="checkbox" id="spotlightEnabled" onchange="toggleSpotlight(); regenerate()"><span class="slider"></span></label>
+                    </div>
+
+                    <div id="spotlightOptions" style="display:none" class="space-y">
+                      <div class="divider"></div>
+                      <p class="section-title" style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px">Select Spotlight Event</p>
+                      <div class="scroll-area" style="max-height:190px" id="spotlightEventList"></div>
+                      <div class="divider"></div>
+                      <p class="section-title" style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px">Spotlight Content</p>
+                      <div class="form-group">
+                        <label>Section Header</label>
+                        <input type="text" id="spotlightHeaderText" value="SPOTLIGHT SHOW" oninput="regenerate()" placeholder="SPOTLIGHT SHOW">
+                        <p class="hint">Text shown above the spotlight image</p>
+                      </div>
+                      <div class="form-group">
+                        <label>Title (leave blank to use event name)</label>
+                        <input type="text" id="spotlightTitle" oninput="regenerate()" placeholder="Event name">
+                      </div>
+                      <div class="form-group">
+                        <label>Subtitle (leave blank to use date/time)</label>
+                        <input type="text" id="spotlightSubtitle" oninput="regenerate()" placeholder="FRI, MAR 20 - 7:00 PM">
+                      </div>
+                      <div class="form-group">
+                        <label>Button Text</label>
+                        <input type="text" id="spotlightButtonText" value="Buy Now" oninput="regenerate()">
+                      </div>
+                      <div class="toggle-row">
+                        <label>Show Venue Name</label>
+                        <label class="switch"><input type="checkbox" id="spotlightShowVenue" onchange="regenerate()"><span class="slider"></span></label>
+                      </div>
+                      <div class="divider"></div>
+                      <div class="form-group">
+                        <label>Coming Soon Section Header</label>
+                        <input type="text" id="comingSoonHeaderText" value="COMING SOON" oninput="regenerate()">
+                        <p class="hint">Header for the remaining events section</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- EDIT EVENTS -->
+                <div id="etab-edit" class="tab-content" style="margin-top:14px">
+                  <div class="space-y">
+                    <p class="text-sm" style="color:var(--text3)">Customize titles, dates, links, and images per event.</p>
+                    <div class="scroll-area" style="max-height:560px" id="editEventsList"></div>
+                  </div>
+                </div>
+
+                <!-- CONTENT -->
+                <div id="etab-content" class="tab-content" style="margin-top:14px">
+                  <div class="space-y">
+                    <div class="grid-3">
+                      <div class="toggle-row"><label>Show Image</label><label class="switch"><input type="checkbox" id="showImage" checked onchange="regenerate()"><span class="slider"></span></label></div>
+                      <div class="toggle-row"><label>Show Date</label><label class="switch"><input type="checkbox" id="showDate" checked onchange="regenerate()"><span class="slider"></span></label></div>
+                      <div class="toggle-row"><label>Show Time</label><label class="switch"><input type="checkbox" id="showTime" onchange="regenerate()"><span class="slider"></span></label></div>
+                      <div class="toggle-row"><label>Show Venue</label><label class="switch"><input type="checkbox" id="showVenue" checked onchange="regenerate()"><span class="slider"></span></label></div>
+                      <div class="toggle-row"><label>City/State New Line</label><label class="switch"><input type="checkbox" id="venueOnSeparateLine" onchange="regenerate()"><span class="slider"></span></label></div>
+                      <div class="toggle-row"><label>Show Button</label><label class="switch"><input type="checkbox" id="showButton" checked onchange="regenerate()"><span class="slider"></span></label></div>
+                    </div>
+                    <div class="form-group">
+                      <label>Button Text</label>
+                      <input type="text" id="buttonText" value="GET TICKETS" oninput="regenerate()">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- BRANDING -->
+                <div id="etab-branding" class="tab-content" style="margin-top:14px">
+                  <div class="space-y">
+                    <div class="form-group">
+                      <label>Header Subtitle (small italic text)</label>
+                      <input type="text" id="headerSubtitle" value="THE WEEKLY MIX" oninput="regenerate()" placeholder="THE WEEKLY MIX">
+                      <p class="hint">Appears above main title in italics</p>
+                    </div>
+                    <div class="form-group">
+                      <label>Header Title (city name)</label>
+                      <input type="text" id="headerText" oninput="regenerate()" placeholder="DENVER">
+                      <p class="hint">Auto-populated from city search.</p>
+                    </div>
+                    <div class="form-group">
+                      <label>Footer Text (optional)</label>
+                      <textarea id="footerText" rows="2" oninput="regenerate()" placeholder="Optional footer text"></textarea>
+                    </div>
+                    <div class="divider"></div>
+                    <p style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Colors</p>
+                    <div class="grid-2">
+                      <div class="form-group"><label>Background</label><div class="color-row"><input type="color" id="bgColorPicker" value="#000000" oninput="syncColor('backgroundColor',this.value)"><input type="text" id="backgroundColor" value="#000000" oninput="syncColorPicker('bgColorPicker',this.value)"></div></div>
+                      <div class="form-group"><label>Text</label><div class="color-row"><input type="color" id="textColorPicker" value="#ffffff" oninput="syncColor('textColor',this.value)"><input type="text" id="textColor" value="#ffffff" oninput="syncColorPicker('textColorPicker',this.value)"></div></div>
+                      <div class="form-group"><label>Heading</label><div class="color-row"><input type="color" id="headingColorPicker" value="#ffffff" oninput="syncColor('headingColor',this.value)"><input type="text" id="headingColor" value="#ffffff" oninput="syncColorPicker('headingColorPicker',this.value)"></div></div>
+                      <div class="form-group"><label>Button</label><div class="color-row"><input type="color" id="buttonColorPicker" value="#ffffff" oninput="syncColor('buttonColor',this.value)"><input type="text" id="buttonColor" value="#ffffff" oninput="syncColorPicker('buttonColorPicker',this.value)"></div></div>
+                      <div class="form-group"><label>Button Text</label><div class="color-row"><input type="color" id="btnTextColorPicker" value="#000000" oninput="syncColor('buttonTextColor',this.value)"><input type="text" id="buttonTextColor" value="#000000" oninput="syncColorPicker('btnTextColorPicker',this.value)"></div></div>
+                    </div>
+                    <div class="divider"></div>
+                    <p style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Typography &amp; Sizing</p>
+                    <div class="grid-3">
+                      <div class="form-group"><label>Heading (px)</label><input type="number" id="headingFontSize" value="24" min="10" max="60" oninput="regenerate()"></div>
+                      <div class="form-group"><label>Body (px)</label><input type="number" id="bodyFontSize" value="18" min="10" max="40" oninput="regenerate()"></div>
+                      <div class="form-group"><label>Date (px)</label><input type="number" id="dateFontSize" value="18" min="10" max="40" oninput="regenerate()"></div>
+                      <div class="form-group"><label>Image Width (px)</label><input type="number" id="imageWidth" value="200" min="50" max="600" oninput="regenerate()"></div>
+                      <div class="form-group"><label>Content Width (px)</label><input type="number" id="contentWidth" value="600" min="300" max="800" oninput="regenerate()"></div>
+                      <div class="form-group"><label>Border Radius (px)</label><input type="number" id="borderRadius" value="4" min="0" max="20" oninput="regenerate()"></div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- PREVIEW -->
+          <div class="space-y">
+            <div class="card">
+              <div class="card-header">
+                <div class="flex items-center gap-2">
+                  <h3>Preview &amp; Export</h3>
+                  <span id="previewEventCount" class="badge badge-secondary"></span>
+                </div>
+                <div class="flex gap-2">
+                  <button class="btn btn-sm" id="btnPreview" onclick="switchPreview('preview')" style="background:var(--accent);border-color:var(--accent);color:#fff">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Preview
+                  </button>
+                  <button class="btn btn-outline btn-sm" id="btnCode" onclick="switchPreview('code')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    HTML
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="previewPane"><div class="preview-wrap" style="height:680px;overflow:hidden"><div class="preview-scaler"><iframe id="previewFrame" title="Email Preview"></iframe></div></div></div>
+                <div id="codePane" style="display:none"><textarea class="code-area" id="htmlOutput" readonly rows="20"></textarea></div>
+                <div class="flex gap-2 mt-2">
+                  <button class="btn btn-outline flex-1" id="copyBtn" onclick="copyHTML()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Copy HTML
+                  </button>
+                  <button class="btn btn-outline flex-1" onclick="downloadHTML()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download HTML
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div id="noSearchPlaceholder" class="empty-state" style="margin-top:80px">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <p style="font-size:15px;font-weight:500;color:var(--text2)">Search for events to get started</p>
+      <p>Enter a city, venue ID, or keyword on the left</p>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API_KEY = 'YrzFaMA83jmEAY4tm0gQJz7SioutA1kU';
+const TM_BASE = 'https://app.ticketmaster.com/discovery/v2';
+const DIVIDER_IMG = 'https://assets.engagement.ticketmaster.com/images/properties/4261/images/6994def69cfea.png';
+const TW_LOGO = 'https://assets.engagement.ticketmaster.com/images/properties/4261/images/66e468d64cd5c.png';
+const TM_LOGO = 'https://assets.engagement.ticketmaster.com/images/properties/4261/images/67af4ea1de470.png';
+
+let allEvents = [], filteredEvents = [], selectedEvents = [];
+let spotlightEventId = null, eventOverrides = {}, imageOverrides = {};
+let searchTimer = null, generatedHTML = '', previewMode = 'preview';
+let expandedEditCards = {};
+
+// -- VENUE LIST (Google Sheets) --
+let venueData = []; // all rows from sheet
+let currentVenue = null;
+
+async function loadSheets() {
+  const url = v('sheetsUrl').trim();
+  if (!url) { showToast('Paste your Google Sheets CSV URL first', 'error'); return; }
+  setStatus('loading', 'Loading...');
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Could not fetch sheet');
+    const text = await res.text();
+    venueData = parseCSV(text);
+    if (!venueData.length) throw new Error('No venue data found');
+    localStorage.setItem('weeklyMixSheetsUrl', url); // save for next session
+    populateMarketDropdown();
+    setStatus('ok', venueData.length + ' venues loaded');
+    showToast(`Loaded ${venueData.length} venues`, 'success');
+  } catch(e) {
+    setStatus('err', e.message);
+    showToast('Failed to load sheet: ' + e.message, 'error');
+  }
+}
+
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,'').toLowerCase());
+  return lines.slice(1).map(line => {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; continue; }
+      cur += ch;
+    }
+    cols.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = (cols[i] || '').trim());
+    return obj;
+  }).filter(r => r.venue_name);
+}
+
+function populateMarketDropdown() {
+  const markets = [...new Set(venueData.map(r => r.market).filter(Boolean))].sort();
+  const sel = ge('marketSelect');
+  sel.innerHTML = '<option value="">-- Select Market --</option>' +
+    markets.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  ge('venueSelect').innerHTML = '<option value="">-- All in Market --</option>';
+  ge('venueQuickLinks').style.display = 'none';
+}
+
+function selectMarket() {
+  const market = v('marketSelect');
+  const vSel = ge('venueSelect');
+  vSel.innerHTML = '<option value="">-- All in Market --</option>';
+  ge('venueQuickLinks').style.display = 'none';
+  currentVenue = null;
+  if (!market) { ge('venueId').value = ''; return; }
+  const venues = venueData.filter(r => r.market === market);
+  venues.forEach(r => {
+    const opt = document.createElement('option');
+    opt.value = r.venue_name;
+    opt.textContent = r.venue_name;
+    vSel.appendChild(opt);
+  });
+  // If only one venue in market, auto-select it
+  if (venues.length === 1) {
+    vSel.value = venues[0].venue_name;
+    selectVenue();
+  } else {
+    // Search all venues in market by fetching each venue_id
+    const ids = venues.map(r => r.venue_id).filter(Boolean);
+    if (ids.length > 0) {
+      ge('venueId').value = ids[0]; // start with first
+      autoHeader();
+      scheduleSearch();
+    }
+  }
+}
+
+function selectVenue() {
+  const name = v('venueSelect');
+  if (!name) { selectMarket(); return; }
+  const row = venueData.find(r => r.venue_name === name);
+  if (!row) return;
+  currentVenue = row;
+  // Auto-fill venue ID and trigger search
+  if (row.venue_id) { ge('venueId').value = row.venue_id; }
+  else ge('venueId').value = '';
+  // Auto-fill city from venue name as header hint
+  if (row.market) ge('headerText').value = row.market.replace(/ Metro| Area| DMA/gi,'').toUpperCase();
+  // Show quick links panel
+  renderVenueLinks(row);
+  scheduleSearch();
+}
+
+function renderVenueLinks(row) {
+  const panel = ge('venueQuickLinks');
+  const links = [];
+  if (row.tw_backend_url) links.push(`<span class="venue-link tw" onclick="window.open('${escQ(row.tw_backend_url)}','_blank','noopener,noreferrer,width=1200,height=800')" style="cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>TW Backend</span>`);
+  if (row.tw_public_url) links.push(`<span class="venue-link" onclick="window.open('${escQ(row.tw_public_url)}','_blank','noopener,noreferrer')" style="cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>TW Public</span>`);
+  if (row.tm_public_url) links.push(`<span class="venue-link" onclick="window.open('${escQ(row.tm_public_url)}','_blank','noopener,noreferrer')" style="cursor:pointer"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>TM Public</span>`);
+  if (!links.length) { panel.style.display = 'none'; return; }
+  panel.innerHTML = `<div class="venue-panel">
+    <div class="venue-panel-header">
+      <span>${esc(row.venue_name)}</span>
+      <span class="badge ${row.platform==='TW'?'badge-yellow':'badge-secondary'}">${esc(row.platform||'')}</span>
+    </div>
+    ${row.notes ? `<p class="hint" style="margin-bottom:6px">${esc(row.notes)}</p>` : ''}
+    <div class="venue-links">${links.join('')}</div>
+  </div>`;
+  panel.style.display = 'block';
+}
+
+function setStatus(type, msg) {
+  const el = ge('sheetsStatus');
+  el.className = 'sheets-status ' + type;
+  el.textContent = msg;
+}
+
+function showSheetsHelp() {
+  alert('How to publish your Google Sheet as CSV: 1. Open your Google Sheet. 2. Click File > Share > Publish to web. 3. Select your sheet and CSV format. 4. Click Publish. 5. Copy the URL and paste it in the tool. Note: Sheet must be Published not just Shared.');
+}
+
+// Auto-load venue list on startup
+const HARDCODED_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJtz4DpKR8ImmSZ2QOJPgzeQZDuY-72NiDR65Dq9K-p-myyqKSGqBhLubdKjjboad0llw6QfPFKDfB/pub?gid=827949005&single=true&output=csv';
+document.addEventListener('DOMContentLoaded', function() {
+  // Always use the hardcoded URL, but allow override from localStorage
+  const saved = localStorage.getItem('weeklyMixSheetsUrl');
+  if (!ge('sheetsUrl').value) {
+    ge('sheetsUrl').value = saved || HARDCODED_SHEETS_URL;
+  }
+  loadSheets();
+  updateRestoreButton();
+});
+
+// Pre-populate dates on load
+let defaultStartDate = '', defaultEndDate = '';
+function initDates() {
+  const fmt = d => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  };
+  const now = new Date();
+  const todayClean = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const futureClean = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30);
+  defaultStartDate = fmt(todayClean);
+  defaultEndDate = fmt(futureClean);
+  document.getElementById('startDate').value = defaultStartDate;
+  document.getElementById('endDate').value = defaultEndDate;
+}
+document.addEventListener('DOMContentLoaded', initDates);
+
+// -- SEARCH --
+function scheduleSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(doSearch, 650);
+}
+
+async function doSearch() {
+  const city = v('city'), venueId = v('venueId'), stateCode = v('stateCode');
+  const keyword = v('keyword'), classificationName = v('classificationName');
+  if (!city && !venueId && !stateCode && !keyword && !classificationName) {
+    allEvents = [];
+    ge('noSearchPlaceholder').style.display = 'flex';
+    ge('mainContent').style.display = 'none';
+    ge('resultsHeader').style.display = 'none';
+    ge('searchStatus').style.display = 'none';
+    ge('searchError').style.display = 'none';
+    return;
+  }
+  ge('searchStatus').style.display = 'flex';
+  ge('searchError').style.display = 'none';
+  ge('noSearchPlaceholder').style.display = 'none';
+  try {
+    // Search both US and CA, merge results
+    const results = await fetchBothCountries({ city, venueId, stateCode, keyword, classificationName });
+    allEvents = results;
+    // Merge new results into selectedEvents cache so previously selected
+    // events from other venues are preserved when switching venues
+    const newIds = new Set(results.map(e => e.id));
+    const existingSelectedIds = new Set(selectedEvents.map(e => e.id));
+    // Add any newly fetched events that aren't already in selected cache
+    // but don't remove previously selected events from other venues
+    results.forEach(e => {
+      if (!existingSelectedIds.has(e.id)) {
+        // Just available, not selected - no action needed
+      }
+    });
+    showResults(city, stateCode, keyword, classificationName);
+  } catch(err) {
+    ge('searchError').textContent = err.message;
+    ge('searchError').style.display = 'block';
+    allEvents = [];
+    showResults('','','','');
+  } finally {
+    ge('searchStatus').style.display = 'none';
+  }
+}
+
+async function fetchBothCountries(opts) {
+  const countries = ['US', 'CA'];
+  const allResults = [];
+  const seen = new Set();
+  for (const country of countries) {
+    try {
+      const params = new URLSearchParams({
+        apikey: API_KEY, page: '0',
+        size: v('pageSize') || '50', sort: 'date,asc',
+        countryCode: country
+      });
+      if (opts.city) params.append('city', opts.city);
+      if (opts.stateCode) params.append('stateCode', opts.stateCode);
+      if (opts.venueId) params.append('venueId', opts.venueId);
+      if (opts.keyword) params.append('keyword', opts.keyword);
+      if (opts.classificationName) params.append('classificationName', opts.classificationName);
+      // Only filter by date if the user has changed the pre-filled defaults
+      const sd = v('startDate'), ed = v('endDate');
+      const datesAreDefaults = sd === defaultStartDate && ed === defaultEndDate;
+      if (opts.startDate !== undefined) {
+        if (opts.startDate) params.append('startDateTime', opts.startDate + 'T00:00:00Z');
+        if (opts.endDate) params.append('endDateTime', opts.endDate + 'T23:59:59Z');
+      } else if (!datesAreDefaults) {
+        if (sd) params.append('startDateTime', sd + 'T00:00:00Z');
+        if (ed) params.append('endDateTime', ed + 'T23:59:59Z');
+      }
+      const res = await fetch(`${TM_BASE}/events.json?${params}`);
+      if (!res.ok) { if (res.status === 429) throw new Error('Rate limit exceeded. Please wait a moment.'); continue; }
+      const data = await res.json();
+      const evs = data?._embedded?.events || [];
+      evs.forEach(e => { if (!seen.has(e.id)) { seen.add(e.id); allResults.push(e); } });
+    } catch(e) { if (e.message && e.message.includes('Rate limit')) throw e; /* skip network errors for this country */ }
+  }
+  allResults.sort((a,b) => new Date(a.dates.start.localDate) - new Date(b.dates.start.localDate));
+  return allResults;
+}
+
+function showResults(city, stateCode, keyword, classification) {
+  ge('resultsHeader').style.display = 'flex';
+  ge('mainContent').style.display = 'block';
+  ge('noSearchPlaceholder').style.display = 'none';
+  let title = 'Events';
+  if (v('venueId')) title = 'Venue Events';
+  else if (city) title = `Events in ${city}${stateCode ? ', '+stateCode : ''}`;
+  ge('resultsTitle').textContent = title;
+  ge('eventsFoundBadge').textContent = `${allEvents.length} found`;
+  updateSelectedBadge();
+  filterEvents();
+  populateVenueFilter();
+  renderEditEventsList();
+  renderSpotlightList();
+  regenerate();
+}
+
+function autoHeader() {
+  const city = v('city');
+  if (city) ge('headerText').value = city.toUpperCase();
+}
+
+function clearDates() {
+  ge('startDate').value = '';
+  ge('endDate').value = '';
+  scheduleSearch();
+}
+
+// -- FILTERING --
+function filterEvents() {
+  const q = v('eventSearch').toLowerCase();
+  const venueF = v('venueFilter');
+  const sort = v('sortSelect');
+  let evs = [...allEvents];
+  if (q) evs = evs.filter(e => {
+    const vn = e._embedded?.venues?.[0]?.name || '';
+    const an = e._embedded?.attractions?.[0]?.name || '';
+    return e.name.toLowerCase().includes(q) || vn.toLowerCase().includes(q) || an.toLowerCase().includes(q);
+  });
+  if (venueF) evs = evs.filter(e => (e._embedded?.venues?.[0]?.name||'') === venueF);
+  evs.sort((a,b) => {
+    switch(sort) {
+      case 'date-asc': return new Date(a.dates.start.localDate)-new Date(b.dates.start.localDate);
+      case 'date-desc': return new Date(b.dates.start.localDate)-new Date(a.dates.start.localDate);
+      case 'name-asc': return a.name.localeCompare(b.name);
+      case 'name-desc': return b.name.localeCompare(a.name);
+    }
+    return 0;
+  });
+  filteredEvents = evs;
+  ge('availableBadge').textContent = `${evs.length} events`;
+  renderAvailableList();
+}
+
+function populateVenueFilter() {
+  const venues = [...new Set(allEvents.map(e=>e._embedded?.venues?.[0]?.name).filter(Boolean))].sort();
+  const sel = ge('venueFilter'), cur = sel.value;
+  sel.innerHTML = '<option value="">All Venues</option>' + venues.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+  sel.value = cur;
+}
+
+function renderAvailableList() {
+  const list = ge('availableList');
+  if (!filteredEvents.length) { list.innerHTML = '<div class="empty-state"><p>No events found</p></div>'; return; }
+  list.innerHTML = filteredEvents.map(e => {
+    const sel = isSelected(e.id);
+    const img = getBestImage(e,200);
+    const date = formatDate(e.dates.start.localDate);
+    const time = e.dates.start.localTime ? ' - '+formatTime(e.dates.start.localTime) : '';
+    const venue = e._embedded?.venues?.[0]?.name || '';
+    return `<div class="event-item ${sel?'selected':''}" onclick="toggleSelect('${e.id}')">
+      <div class="checkbox ${sel?'checked':''}"></div>
+      ${img?`<img src="${img}" alt="" loading="lazy">`:''}
+      <div class="event-info">
+        <div class="event-name">${esc(e.name)}</div>
+        <div class="event-meta">${date}${time}${venue?' - '+esc(venue):''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSelectedList() {
+  const list = ge('selectedList');
+  updateSelectedBadge();
+  if (!selectedEvents.length) {
+    list.innerHTML = '<div class="empty-state"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><p>No events selected yet.<br>Select events from the left.</p></div>';
+    return;
+  }
+  const total = selectedEvents.length;
+  list.innerHTML = selectedEvents.map((e, i) => {
+    const img = getBestImage(e,200);
+    const date = formatDate(e.dates.start.localDate);
+    const time = e.dates.start.localTime ? ' - '+formatTime(e.dates.start.localTime) : '';
+    const isFirst = i === 0, isLast = i === total - 1;
+    const ticketUrl = getTicketUrl(e);
+    return `<div class="sel-event-row" id="selev-${e.id}"
+      draggable="true"
+      ondragstart="selDragStart(event,${i})"
+      ondragover="selDragOver(event,${i})"
+      ondragleave="selDragLeave(event)"
+      ondrop="selDrop(event,${i})"
+      ondragend="selDragEnd(event)">
+      <div class="drag-grip" title="Drag to reorder">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="19" r="1" fill="currentColor"/><circle cx="15" cy="5" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="19" r="1" fill="currentColor"/></svg>
+      </div>
+      <div class="arrow-btns">
+        <button class="arrow-btn ${isFirst?'disabled':''}" onclick="moveEvent(${i},-1)" title="Move up">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <button class="arrow-btn ${isLast?'disabled':''}" onclick="moveEvent(${i},1)" title="Move down">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+      <div class="sel-num">${i+1}</div>
+      ${img?`<img src="${img}" alt="" loading="lazy">`:''}
+      <div class="sel-ev-info flex-1 min-w-0">
+        <div class="sel-ev-name">${esc(e.name)}</div>
+        <div class="sel-ev-date">${date}${time}</div>
+      </div>
+      ${ticketUrl ? `<button class="btn btn-ghost btn-xs" onclick="window.open('${escQ(ticketUrl)}','_blank','noopener,noreferrer')" title="Open ticket page" style="color:var(--accent)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </button>` : ''}
+      <button class="btn btn-ghost btn-xs" onclick="removeSelected('${e.id}',event)" style="color:var(--text4)">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`;
+  }).join('');
+}
+
+let selDragIdx = null;
+
+function selDragStart(event, i) {
+  selDragIdx = i;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', i);
+  setTimeout(() => {
+    const el = event.currentTarget;
+    if (el) el.classList.add('dragging');
+  }, 0);
+}
+
+function selDragOver(event, i) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('#selectedList .sel-event-row').forEach(el => el.classList.remove('drag-over'));
+  event.currentTarget.classList.add('drag-over');
+}
+
+function selDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function selDragEnd(event) {
+  event.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('#selectedList .sel-event-row').forEach(el => {
+    el.classList.remove('drag-over');
+    el.classList.remove('dragging');
+  });
+  selDragIdx = null;
+}
+
+function selDrop(event, i) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  if (selDragIdx === null || selDragIdx === i) return;
+  const arr = [...selectedEvents];
+  const [moved] = arr.splice(selDragIdx, 1);
+  arr.splice(i, 0, moved);
+  selectedEvents = arr;
+  selDragIdx = null;
+  renderSelectedList();
+  renderSpotlightList();
+  regenerate();
+}
+
+function moveEvent(idx, dir) {
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= selectedEvents.length) return;
+  [selectedEvents[idx], selectedEvents[newIdx]] = [selectedEvents[newIdx], selectedEvents[idx]];
+  renderSelectedList();
+  renderSpotlightList();
+  regenerate();
+}
+
+// -- SELECTION --
+function toggleSelect(id) {
+  const ev = allEvents.find(e=>e.id===id);
+  if (!ev) return;
+  if (isSelected(id)) { selectedEvents = selectedEvents.filter(e=>e.id!==id); if (spotlightEventId===id) spotlightEventId=null; }
+  else selectedEvents.push(ev);
+  renderAvailableList(); renderSelectedList(); renderEditEventsList(); renderSpotlightList(); updateSelectedBadge(); regenerate();
+}
+
+function removeSelected(id, ev) {
+  ev.stopPropagation();
+  selectedEvents = selectedEvents.filter(e=>e.id!==id);
+  if (spotlightEventId===id) spotlightEventId=null;
+  renderAvailableList(); renderSelectedList(); renderEditEventsList(); renderSpotlightList(); updateSelectedBadge(); regenerate();
+}
+
+function selectAll() {
+  filteredEvents.forEach(e=>{ if (!isSelected(e.id)) selectedEvents.push(e); });
+  renderAvailableList(); renderSelectedList(); renderEditEventsList(); renderSpotlightList(); updateSelectedBadge(); regenerate();
+}
+
+function deselectAll() {
+  const ids = new Set(filteredEvents.map(e=>e.id));
+  selectedEvents = selectedEvents.filter(e=>!ids.has(e.id));
+  if (ids.has(spotlightEventId)) spotlightEventId=null;
+  renderAvailableList(); renderSelectedList(); renderEditEventsList(); renderSpotlightList(); updateSelectedBadge(); regenerate();
+}
+
+function clearSelected() {
+  selectedEvents = []; spotlightEventId = null;
+  renderAvailableList(); renderSelectedList(); renderEditEventsList(); renderSpotlightList(); updateSelectedBadge(); regenerate();
+}
+
+function isSelected(id) { return selectedEvents.some(e=>e.id===id); }
+
+function updateSelectedBadge() {
+  const n = selectedEvents.length;
+  ge('selectedBadge').textContent = `${n} selected`;
+  ge('clearSelBtn').style.display = n>0?'inline-flex':'none';
+  ge('selectedCountBadge').textContent = n>0?`${n} selected`:'';
+  ge('selectedCountBadge').style.display = n>0?'inline-flex':'none';
+  ge('previewEventCount').textContent = `${Math.min(n||allEvents.length, parseInt(v('maxEvents'))||100)} events`;
+}
+
+// -- SPOTLIGHT --
+function toggleSpotlight() {
+  const enabled = ge('spotlightEnabled').checked;
+  ge('spotlightOptions').style.display = enabled?'block':'none';
+  if (enabled && !spotlightEventId) {
+    const src = selectedEvents.length>0?selectedEvents:allEvents;
+    if (src.length>0) spotlightEventId = src[0].id;
+  }
+  if (!enabled) spotlightEventId = null;
+  renderSpotlightList();
+}
+
+function renderSpotlightList() {
+  const list = ge('spotlightEventList');
+  const src = selectedEvents.length>0?selectedEvents:allEvents;
+  const max = parseInt(v('maxEvents'))||100;
+  if (!src.length) { list.innerHTML='<p class="text-sm" style="color:var(--text3)">No events loaded yet.</p>'; return; }
+  list.innerHTML = src.slice(0,max).map(e => {
+    const active = spotlightEventId===e.id;
+    const date = formatDate(e.dates.start.localDate);
+    return `<div class="spotlight-event ${active?'active':''}" onclick="setSpotlight('${e.id}')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="${active?'var(--yellow)':'var(--text4)'}" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <div class="flex-1 min-w-0">
+        <div class="ev-name">${esc(e.name)}</div>
+        <div class="ev-date">${date} -- ${esc(e._embedded?.venues?.[0]?.name||'Venue TBD')}</div>
+      </div>
+      ${active?'<span class="badge badge-yellow">Spotlight</span>':''}
+    </div>`;
+  }).join('');
+}
+
+function setSpotlight(id) { spotlightEventId=id; renderSpotlightList(); regenerate(); }
+
+// -- EDIT EVENTS --
+function renderEditEventsList() {
+  const list = ge('editEventsList');
+  const src = selectedEvents.length>0?selectedEvents:allEvents;
+  const max = parseInt(v('maxEvents'))||100;
+  if (!src.length) { list.innerHTML='<p class="text-sm" style="color:var(--text3)">No events loaded yet.</p>'; return; }
+  list.innerHTML = src.slice(0,max).map(e => {
+    const ov = eventOverrides[e.id]||{};
+    const imgOv = imageOverrides[e.id]||'';
+    const modified = Object.keys(ov).length>0||!!imgOv;
+    const date = formatDate(e.dates.start.localDate);
+    const thumb = imgOv||getBestImage(e,200)||'';
+    const open = expandedEditCards[e.id];
+    return `<div class="edit-event-card ${modified?'modified':''}" id="eecard-${e.id}">
+      <div class="edit-event-header" onclick="toggleEditCard('${e.id}')">
+        ${thumb?`<img src="${thumb}" alt="">`:'<div style="width:46px;height:34px;background:var(--border);border-radius:4px;flex-shrink:0"></div>'}
+        <div class="ev-title" onclick="event.stopPropagation()"><p>${esc(e.name)}</p><span>${date} -- ${esc(e._embedded?.venues?.[0]?.name||'Venue TBD')}</span></div>
+        ${modified?'<span class="badge badge-default" style="font-size:10px">Modified</span>':''}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:rotate(${open?180:0}deg);transition:0.2s;flex-shrink:0;color:var(--text3)"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="edit-event-body ${open?'open':''}">
+        <div class="edit-fields">
+          <div><div class="field-label">Prefix (above title)</div><input type="text" placeholder="Optional descriptor" value="${esc(ov.prefix||'')}" oninput="setOverride('${e.id}','prefix',this.value)"></div>
+          <div><div class="field-label">Title</div><input type="text" placeholder="${esc(e.name)}" value="${esc(ov.title||'')}" oninput="setOverride('${e.id}','title',this.value)"></div>
+          <div><div class="field-label">Title Break (line 2)</div><input type="text" placeholder="Optional 2nd line" value="${esc(ov.titleBreak||'')}" oninput="setOverride('${e.id}','titleBreak',this.value)"></div>
+          <div><div class="field-label">Subtitle</div><input type="text" placeholder="Optional" value="${esc(ov.subtitle||'')}" oninput="setOverride('${e.id}','subtitle',this.value)"></div>
+          <div><div class="field-label">Date Override</div><input type="text" placeholder="03/27 - 03/30" value="${esc(ov.date||'')}" oninput="setOverride('${e.id}','date',this.value)"></div>
+          <div><div class="field-label">Ticket URL</div><input type="text" placeholder="https://..." value="${esc(ov.url||'')}" oninput="setOverride('${e.id}','url',this.value)"></div>
+          <div class="full">
+            <div class="field-label">Image Override</div>
+            <div class="img-drop-zone ${imgOv ? 'has-image' : ''}" id="dropzone-${e.id}"
+              ondragover="event.preventDefault();this.classList.add('dragover')"
+              ondragleave="this.classList.remove('dragover')"
+              ondrop="handleImgDrop(event,'${e.id}')">
+              <input type="file" accept="image/*" onchange="handleImgFile(event,'${e.id}')">
+              <div class="drop-label">
+                ${imgOv
+                  ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span style="color:var(--accent)">Custom image set</span>`
+                  : `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Drop image or click to upload</span>`
+                }
+              </div>
+            </div>
+            <input type="text" placeholder="Or paste image URL here" value="${esc(imgOv)}" oninput="setImageOverride('${e.id}',this.value)" style="margin-top:5px;font-size:11px" id="imgurl-${e.id}">
+          </div>
+        </div>
+        ${modified?`<div style="display:flex;justify-content:flex-end;margin-top:8px"><button class="btn btn-danger btn-xs" onclick="resetOverrides('${e.id}')">Reset Changes</button></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleEditCard(id) { expandedEditCards[id]=!expandedEditCards[id]; renderEditEventsList(); }
+
+function setOverride(id, field, val) {
+  if (!eventOverrides[id]) eventOverrides[id]={};
+  if (val) eventOverrides[id][field]=val; else delete eventOverrides[id][field];
+  if (!Object.keys(eventOverrides[id]).length) delete eventOverrides[id];
+  regenerate();
+  const card = ge(`eecard-${id}`);
+  if (card) { const modified=Object.keys(eventOverrides[id]||{}).length>0||!!imageOverrides[id]; card.className=`edit-event-card ${modified?'modified':''}`; }
+}
+
+function setImageOverride(id, val) {
+  if (val.trim()) imageOverrides[id]=val.trim(); else delete imageOverrides[id];
+  regenerate();
+}
+
+function resetOverrides(id) { delete eventOverrides[id]; delete imageOverrides[id]; renderEditEventsList(); regenerate(); }
+
+// -- HTML GENERATION --
+function handleImgDrop(event, id) {
+  event.preventDefault();
+  const zone = document.getElementById('dropzone-' + id);
+  if (zone) zone.classList.remove('dragover');
+  const file = event.dataTransfer?.files?.[0];
+  if (file && file.type.startsWith('image/')) {
+    readImageFile(file, id);
+  }
+}
+
+function handleImgFile(event, id) {
+  const file = event.target.files?.[0];
+  if (file && file.type.startsWith('image/')) {
+    readImageFile(file, id);
+  }
+  event.target.value = '';
+}
+
+function readImageFile(file, id) {
+  const zone = document.getElementById('dropzone-' + id);
+  if (zone) zone.classList.add('uploading');
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    imageOverrides[id] = dataUrl;
+    // Update URL field too
+    const urlField = document.getElementById('imgurl-' + id);
+    if (urlField) urlField.value = '';
+    if (zone) {
+      zone.classList.remove('uploading');
+      zone.classList.add('has-image');
+      zone.querySelector('.drop-label').innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span style="color:var(--accent)">Custom image set — ' + file.name + '</span>';
+    }
+    regenerate();
+    // Update modified badge
+    const card = document.getElementById('eecard-' + id);
+    if (card) {
+      const modified = Object.keys(eventOverrides[id] || {}).length > 0 || !!imageOverrides[id];
+      card.className = 'edit-event-card ' + (modified ? 'modified' : '');
+    }
+  };
+  reader.onerror = () => {
+    if (zone) zone.classList.remove('uploading');
+    showToast('Failed to read image file', 'error');
+  };
+  reader.readAsDataURL(file);
+}
+
+function regenerate() {
+  const src = selectedEvents.length>0?selectedEvents:allEvents;
+  const max = parseInt(v('maxEvents'))||100;
+  if (!src.length) { generatedHTML=''; updateOutput(); return; }
+  const cfg = getConfig();
+  const events = src.slice(0,max);
+  const spotlightEnabled = ge('spotlightEnabled').checked;
+  let spotlightEv=null, listEvs=events;
+  if (spotlightEnabled&&spotlightEventId) { spotlightEv=events.find(e=>e.id===spotlightEventId)||null; if(spotlightEv) listEvs=events.filter(e=>e.id!==spotlightEventId); }
+  else if (spotlightEnabled&&events.length>0) { spotlightEv=events[0]; listEvs=events.slice(1); }
+  const hasSpotlight=spotlightEnabled&&spotlightEv;
+
+  let html=`<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="format-detection" content="telephone=no">
+  <title>Events</title>
+  <!--[if mso]><style type="text/css">body, table, td {font-family: Arial, Helvetica, sans-serif !important;}</style><![endif]-->
+  <style type="text/css">body{margin:0;padding:0;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}table,td{border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;}img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}a{text-decoration:none;}</style>
+</head>
+<body style="margin:0;padding:0;background-color:${cfg.bg};">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:${cfg.bg};">
+    <tr><td align="center" style="padding:0;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${cfg.cw}" style="max-width:${cfg.cw}px;background-color:${cfg.bg};">
+        <tr><td align="center" style="padding:20px 20px 5px 20px;background-color:${cfg.bg};">
+          ${cfg.headerSubtitle?`<p style="margin:0 0 8px 0;font-family:${cfg.font};font-size:14px;font-style:italic;color:${cfg.text};text-transform:uppercase;letter-spacing:2px;">${cfg.headerSubtitle}</p>`:''}
+          ${cfg.headerText?`<h1 style="margin:0;font-family:${cfg.font};font-size:46px;font-weight:bold;color:${cfg.heading};text-transform:uppercase;letter-spacing:1px;">${cfg.headerText}</h1>`:''}
+        </td></tr>
+        <tr><td align="center" style="padding:5px 0 10px 0;"><img src="${DIVIDER_IMG}" alt="" width="${cfg.cw}" style="display:block;max-width:100%;height:auto;"/></td></tr>`;
+
+  if (hasSpotlight&&spotlightEv) {
+    const ov=eventOverrides[spotlightEv.id]||{};
+    const title=v('spotlightTitle')||ov.title||spotlightEv.name;
+    const dateStr=formatDate(spotlightEv.dates.start.localDate);
+    const timeStr=cfg.showTime?formatTime(spotlightEv.dates.start.localTime||''):'';
+    const defDate=timeStr?`${dateStr} - ${timeStr}`:dateStr;
+    const subtitle=v('spotlightSubtitle')||ov.date||defDate;
+    const btnText=v('spotlightButtonText')||v('buttonText')||'Buy Now';
+    const imgUrl=imageOverrides[spotlightEv.id]||getBestImage(spotlightEv,cfg.cw)||'';
+    const url=ov.url||getTicketUrl(spotlightEv);
+    html+=`<tr><td align="center" style="padding:20px 20px 10px 20px;background-color:${cfg.bg};"><h2 style="margin:0;font-family:${cfg.font};font-size:24px;font-weight:bold;color:${cfg.text};text-transform:uppercase;letter-spacing:2px;">${v('spotlightHeaderText')||'SPOTLIGHT SHOW'}</h2></td></tr>
+        <tr><td align="center" style="padding:10px 20px;background-color:${cfg.bg};"><a href="${url}" target="_blank" style="display:block;"><img src="${imgUrl}" alt="${escQ(spotlightEv.name)}" width="${cfg.cw-40}" style="display:block;max-width:100%;height:auto;"/></a></td></tr>
+        <tr><td align="center" style="padding:20px;background-color:${cfg.bg};">
+          ${ov.prefix?`<p style="margin:0 0 4px 0;font-family:${cfg.font};font-size:14px;color:${cfg.text};">${ov.prefix}</p>`:''}
+          <h2 style="margin:0;font-family:${cfg.font};font-size:${cfg.hSize}px;font-weight:bold;color:${cfg.heading};text-transform:uppercase;">${title}</h2>
+          ${ov.titleBreak?`<h2 style="margin:0;font-family:${cfg.font};font-size:${cfg.hSize}px;font-weight:bold;color:${cfg.heading};text-transform:uppercase;">${ov.titleBreak}</h2>`:''}
+          ${ov.subtitle?`<p style="margin:4px 0 0 0;font-family:${cfg.font};font-size:14px;color:${cfg.text};">${ov.subtitle}</p>`:''}
+          ${ge('spotlightShowVenue').checked&&spotlightEv._embedded?.venues?.[0]?`<p style="margin:4px 0 0 0;font-family:${cfg.font};font-size:${cfg.bSize}px;color:${cfg.text};">${getVenueName(spotlightEv)}${getCityState(spotlightEv)?' | '+getCityState(spotlightEv):''}</p>`:''}
+          <p style="margin:8px 0 16px 0;font-family:${cfg.font};font-size:${cfg.dSize}px;color:${cfg.text};">${subtitle}</p>
+          ${cfg.showButton?`<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="background-color:${cfg.btnBg};border-radius:${cfg.radius}px;"><a href="${url}" target="_blank" style="display:inline-block;padding:14px 40px;font-family:${cfg.font};font-size:14px;font-weight:bold;color:${cfg.btnText};text-decoration:none;text-transform:uppercase;">${btnText}</a></td></tr></table>`:''}
+        </td></tr>`;
+  }
+
+  if (listEvs.length>0) {
+    if (hasSpotlight) html+=`<tr><td align="center" style="padding:30px 0;"><img src="${DIVIDER_IMG}" alt="" width="${cfg.cw}" style="display:block;max-width:100%;height:auto;"/></td></tr>`;
+    html+=`<tr><td align="center" style="padding:20px;background-color:${cfg.bg};"><h2 style="margin:0;font-family:${cfg.font};font-size:24px;font-weight:bold;color:${cfg.heading};text-transform:uppercase;letter-spacing:2px;">${v('comingSoonHeaderText')||'COMING SOON'}</h2></td></tr>`;
+    for (const e of listEvs) {
+      const ov=eventOverrides[e.id]||{};
+      const title=ov.title||e.name;
+      const imgUrl=imageOverrides[e.id]||getBestImage(e,cfg.imgW)||'';
+      const url=ov.url||getTicketUrl(e);
+      const vname=getVenueName(e), citystate=getCityState(e);
+      let venueStr='';
+      if(cfg.venueNewLine) venueStr=vname?`${vname}<br/>${citystate}`:citystate;
+      else venueStr=vname&&citystate?`${vname} | ${citystate}`:(vname||citystate);
+      let dateStr='';
+      if(ov.date) dateStr=ov.date;
+      else { const d=formatDate(e.dates.start.localDate); const t=cfg.showTime?formatTime(e.dates.start.localTime||''):''; dateStr=t?`${d} - ${t}`:d; }
+      html+=`<tr><td style="padding:20px;background-color:${cfg.bg};"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>
+          ${cfg.showImage&&imgUrl?`<td width="${cfg.imgW}" valign="top" style="padding-right:20px;"><a href="${url}" target="_blank" style="display:block;"><img src="${imgUrl}" alt="${escQ(title)}" width="${cfg.imgW}" style="display:block;max-width:${cfg.imgW}px;height:auto;"/></a></td>`:''}
+          <td valign="middle" style="font-family:${cfg.font};">
+            ${ov.prefix?`<p style="margin:0 0 4px 0;font-size:14px;color:${cfg.text};">${ov.prefix}</p>`:''}
+            <h3 style="margin:0;font-size:${cfg.hSize}px;font-weight:bold;color:${cfg.heading};text-transform:uppercase;"><a href="${url}" target="_blank" style="color:${cfg.heading};text-decoration:none;">${title}</a></h3>
+            ${ov.titleBreak?`<h3 style="margin:0;font-size:${cfg.hSize}px;font-weight:bold;color:${cfg.heading};text-transform:uppercase;"><a href="${url}" target="_blank" style="color:${cfg.heading};text-decoration:none;">${ov.titleBreak}</a></h3>`:''}
+            ${ov.subtitle?`<p style="margin:4px 0 0 0;font-size:14px;color:${cfg.text};">${ov.subtitle}</p>`:''}
+            ${cfg.showVenue&&venueStr?`<p style="margin:4px 0 0 0;font-size:${cfg.bSize}px;color:${cfg.text};">${venueStr}</p>`:''}
+            ${cfg.showDate?`<p style="margin:0 0 12px 0;font-size:${cfg.dSize}px;color:${cfg.text};">${dateStr}</p>`:''}
+            ${cfg.showButton?`<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="background-color:${cfg.btnBg};border-radius:${cfg.radius}px;"><a href="${url}" target="_blank" style="display:inline-block;padding:12px 32px;font-family:${cfg.font};font-size:14px;font-weight:bold;color:${cfg.btnText};text-decoration:none;text-transform:uppercase;">${v('buttonText')||'GET TICKETS'}</a></td></tr></table>`:''}
+          </td></tr></table></td></tr>`;
+    }
+  }
+
+  html+=`<tr><td align="center" style="padding:30px 0;"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${cfg.cw-40}"><tr><td style="border-top:1px solid ${cfg.text};"></td></tr></table></td></tr>
+        <tr><td align="center" style="padding:0 20px 20px 20px;background-color:${cfg.bg};"><p style="margin:0;font-family:${cfg.font};font-size:14px;font-weight:bold;color:${cfg.text};text-transform:uppercase;letter-spacing:1px;">FIND YOUR NEXT EVENT HERE</p></td></tr>
+        <tr><td align="center" style="padding:20px;background-color:${cfg.bg};"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="padding-right:30px;"><a href="https://www.ticketweb.com" target="_blank"><img src="${TW_LOGO}" alt="TicketWeb" width="120" style="display:block;height:auto;"/></a></td>
+          <td><a href="https://www.ticketmaster.com" target="_blank"><img src="${TM_LOGO}" alt="Ticketmaster" width="120" style="display:block;height:auto;"/></a></td>
+        </tr></table></td></tr>
+        <tr><td align="center" style="padding:20px 0;"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="${cfg.cw-40}"><tr><td style="border-top:1px solid ${cfg.text};"></td></tr></table></td></tr>
+        <tr><td align="center" style="padding:20px;background-color:${cfg.bg};">
+          <table width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="word-break:break-word"><tr><td>
+            <div style="font-family:sans-serif"><div style="font-size:12px;font-family:Arial,Helvetica Neue,Helvetica,sans-serif;color:#555;line-height:1.2">
+              <p style="margin:0;text-align:center;font-size:10px"><span style="word-break:break-word;color:#ffffff;font-size:10px">%[company_name]% | %[company_email]%</span></p>
+              <p style="margin:0;text-align:center;font-size:10px"><span style="word-break:break-word;color:#ffffff;font-size:10px">%[company_address]%, %[company_city]% %[company_state]% %[company_zip]%</span></p>
+              <p style="margin:0;text-align:center;font-size:10px">&nbsp;</p>
+              <p style="margin:0;text-align:center;font-size:10px"><span style="word-break:break-word;color:#ffffff;font-size:10px">You are receiving this email because your email address was used for a ticket purchase or you signed up via our website. To unsubscribe from all email communications or update preferences, go <a href="%[unsubscribe_link]%" target="_blank" rel="noopener" style="color:#ffffff;">here</a>.&nbsp;&nbsp;</span></p>
+            </div></div>
+          </td></tr></table>
+          ${cfg.footerText?`<p style="margin:10px 0 0 0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:${cfg.text};">${cfg.footerText}</p>`:''}
+        </td></tr>
+      </table></td></tr></table>
+</body></html>`;
+
+  generatedHTML=html;
+  updateOutput();
+  autoSave();
+}
+
+function getConfig() {
+  return {
+    bg: v('backgroundColor')||'#000000', text: v('textColor')||'#ffffff',
+    heading: v('headingColor')||'#ffffff', btnBg: v('buttonColor')||'#ffffff',
+    btnText: v('buttonTextColor')||'#000000', font: 'Arial, Helvetica, sans-serif',
+    hSize: parseInt(v('headingFontSize'))||24, bSize: parseInt(v('bodyFontSize'))||18,
+    dSize: parseInt(v('dateFontSize'))||18, imgW: parseInt(v('imageWidth'))||200,
+    cw: parseInt(v('contentWidth'))||600, radius: parseInt(v('borderRadius'))||4,
+    showImage: ge('showImage').checked, showDate: ge('showDate').checked,
+    showTime: ge('showTime').checked, showVenue: ge('showVenue').checked,
+    showButton: ge('showButton').checked, venueNewLine: ge('venueOnSeparateLine').checked,
+    headerSubtitle: v('headerSubtitle'), headerText: v('headerText'), footerText: v('footerText'),
+  };
+}
+
+function syncColor(fieldId, val) { ge(fieldId).value=val; regenerate(); }
+function syncColorPicker(pickerId, val) { if(/^#[0-9a-fA-F]{6}$/.test(val)) { ge(pickerId).value=val; regenerate(); } }
+
+function updateOutput() {
+  const empty = '<div style="padding:40px;text-align:center;color:#888;font-family:sans-serif">No events to preview yet.</div>';
+  if (previewMode==='preview') ge('previewFrame').srcdoc=generatedHTML||empty;
+  else ge('htmlOutput').value=generatedHTML;
+}
+
+// -- HELPERS --
+function getBestImage(ev, targetW) {
+  if (!ev.images||!ev.images.length) return '';
+  return [...ev.images].sort((a,b)=>Math.abs(a.width-targetW)-Math.abs(b.width-targetW))[0].url;
+}
+function formatDate(d) {
+  if(!d) return '';
+  const [y,m,day]=d.split('-').map(Number);
+  const dt=new Date(y,m-1,day);
+  return `${['SUN','MON','TUE','WED','THU','FRI','SAT'][dt.getDay()]}, ${['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][dt.getMonth()]} ${dt.getDate()}`;
+}
+function formatTime(t) {
+  if(!t) return '';
+  const [h,m]=t.split(':'); const hr=parseInt(h);
+  return `${hr%12||12}:${m} ${hr>=12?'PM':'AM'}`;
+}
+function getVenueName(ev) { return ev._embedded?.venues?.[0]?.name||''; }
+const STATE_MAP={Alabama:'AL',Alaska:'AK',Arizona:'AZ',Arkansas:'AR',California:'CA',Colorado:'CO',Connecticut:'CT',Delaware:'DE',Florida:'FL',Georgia:'GA',Hawaii:'HI',Idaho:'ID',Illinois:'IL',Indiana:'IN',Iowa:'IA',Kansas:'KS',Kentucky:'KY',Louisiana:'LA',Maine:'ME',Maryland:'MD',Massachusetts:'MA',Michigan:'MI',Minnesota:'MN',Mississippi:'MS',Missouri:'MO',Montana:'MT',Nebraska:'NE',Nevada:'NV','New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC','North Dakota':'ND',Ohio:'OH',Oklahoma:'OK',Oregon:'OR',Pennsylvania:'PA','Rhode Island':'RI','South Carolina':'SC','South Dakota':'SD',Tennessee:'TN',Texas:'TX',Utah:'UT',Vermont:'VT',Virginia:'VA',Washington:'WA','West Virginia':'WV',Wisconsin:'WI',Wyoming:'WY','District of Columbia':'DC'};
+function getCityState(ev) {
+  const vn=ev._embedded?.venues?.[0]; if(!vn) return '';
+  const city=vn.city?.name||''; const state=vn.state?.name||'';
+  const code=STATE_MAP[state]||state;
+  return code?`${city}, ${code}`:city;
+}
+function getTicketUrl(ev) {
+  const url=ev.url||'';
+  if(url.includes('ticketweb.com')) return url+(url.includes('?')?'&':'?')+'REFERRAL_ID=weeklymix';
+  return url;
+}
+function esc(s) { if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escQ(s) { return esc(s).replace(/'/g,'&#39;'); }
+function v(id) { const el=ge(id); return el?el.value:''; }
+function ge(id) { return document.getElementById(id); }
+
+// -- TABS --
+function switchMainTab(name,btn) {
+  document.querySelectorAll('#mainContent .tabs .tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ge('tab-select').classList.toggle('active',name==='select');
+  ge('tab-email').classList.toggle('active',name==='email');
+  if(name==='email'){renderEditEventsList();renderSpotlightList();regenerate();}
+}
+function switchEmailTab(name,btn) {
+  btn.closest('.tabs').querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['spotlight','edit','content','branding'].forEach(t=>{const el=ge(`etab-${t}`);if(el)el.classList.toggle('active',t===name);});
+  if(name==='edit')renderEditEventsList();
+  if(name==='spotlight')renderSpotlightList();
+}
+function switchPreview(mode) {
+  previewMode=mode;
+  ge('previewPane').style.display=mode==='preview'?'block':'none';
+  ge('codePane').style.display=mode==='code'?'block':'none';
+  const bp=ge('btnPreview'),bc=ge('btnCode');
+  if(mode==='preview'){bp.style.cssText='background:var(--accent);border-color:var(--accent);color:#fff';bc.style.cssText='';}
+  else{bc.style.cssText='background:var(--accent);border-color:var(--accent);color:#fff';bp.style.cssText='';}
+  updateOutput();
+}
+
+// -- COPY / DOWNLOAD --
+async function copyHTML() {
+  if(!generatedHTML) return;
+  try {
+    await navigator.clipboard.writeText(generatedHTML);
+    const btn=ge('copyBtn'); const orig=btn.innerHTML;
+    btn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+    btn.classList.add('btn-success');
+    setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('btn-success');},2000);
+    showToast('HTML copied to clipboard','success');
+  } catch { showToast('Copy failed -- use the Download button','error'); }
+}
+function downloadHTML() {
+  if(!generatedHTML) return;
+  const blob=new Blob([generatedHTML],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='email-campaign.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('HTML file downloaded','success');
+}
+
+// -- SAVE / LOAD --
+function openSaveModal() {
+  const city=v('city'); const today=new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'});
+  ge('saveCampaignName').value=city?`${city} ${today}`:`Campaign ${today}`;
+  ge('saveModal').classList.add('open');
+  setTimeout(()=>ge('saveCampaignName').select(),50);
+}
+function closeModal() { ge('saveModal').classList.remove('open'); }
+function confirmSave() {
+  const name=ge('saveCampaignName').value.trim()||'campaign';
+  const data=buildCampaignData(name);
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=name.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  closeModal(); showToast(`Saved: ${name}`,'success');
+}
+function buildCampaignData(name) {
+  return { _version:2, _saved:new Date().toISOString(), name,
+    search:{ city:v('city'),stateCode:v('stateCode'),venueId:v('venueId'),keyword:v('keyword'),classificationName:v('classificationName'),startDate:v('startDate'),endDate:v('endDate'),pageSize:v('pageSize'),maxEvents:v('maxEvents') },
+    selectedEventIds:selectedEvents.map(e=>e.id),
+    selectedEventData:selectedEvents, // full event objects so load doesn't need API
+    spotlightEventId, spotlightEnabled:ge('spotlightEnabled').checked,
+    eventOverrides, imageOverrides,
+    emailConfig:{
+      spotlightHeaderText:v('spotlightHeaderText'),spotlightTitle:v('spotlightTitle'),spotlightSubtitle:v('spotlightSubtitle'),
+      spotlightButtonText:v('spotlightButtonText'),spotlightShowVenue:ge('spotlightShowVenue').checked,
+      comingSoonHeaderText:v('comingSoonHeaderText'),showImage:ge('showImage').checked,showDate:ge('showDate').checked,
+      showTime:ge('showTime').checked,showVenue:ge('showVenue').checked,showButton:ge('showButton').checked,
+      venueOnSeparateLine:ge('venueOnSeparateLine').checked,buttonText:v('buttonText'),headerSubtitle:v('headerSubtitle'),
+      headerText:v('headerText'),footerText:v('footerText'),backgroundColor:v('backgroundColor'),textColor:v('textColor'),
+      headingColor:v('headingColor'),buttonColor:v('buttonColor'),buttonTextColor:v('buttonTextColor'),
+      headingFontSize:v('headingFontSize'),bodyFontSize:v('bodyFontSize'),dateFontSize:v('dateFontSize'),
+      imageWidth:v('imageWidth'),contentWidth:v('contentWidth'),borderRadius:v('borderRadius'),
+    }
+  };
+}
+function triggerLoad() { ge('loadFileInput').click(); }
+function loadCampaignFile(event) {
+  const file=event.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    try { const data=JSON.parse(e.target.result); if(!data._version) throw new Error('Not a valid campaign file'); applyCampaignData(data); showToast(`Loaded: ${data.name||'Campaign'}`,'success'); }
+    catch(err) { showToast('Failed to load: '+err.message,'error'); }
+  };
+  reader.readAsText(file); event.target.value='';
+}
+async function applyCampaignData(data) {
+  const s=data.search||{};
+  setField('city',s.city); setField('stateCode',s.stateCode); setField('venueId',s.venueId);
+  setField('keyword',s.keyword); setField('classificationName',s.classificationName);
+  setField('startDate',s.startDate); setField('endDate',s.endDate);
+  setField('pageSize',s.pageSize||'50'); setField('maxEvents',s.maxEvents||'100');
+  eventOverrides=data.eventOverrides||{}; imageOverrides=data.imageOverrides||{};
+  spotlightEventId=data.spotlightEventId||null;
+  const cfg=data.emailConfig||{};
+  setField('spotlightHeaderText',cfg.spotlightHeaderText??'SPOTLIGHT SHOW');
+  setField('spotlightTitle',cfg.spotlightTitle??''); setField('spotlightSubtitle',cfg.spotlightSubtitle??'');
+  setField('spotlightButtonText',cfg.spotlightButtonText??'Buy Now');
+  setCheck('spotlightShowVenue',cfg.spotlightShowVenue);
+  setField('comingSoonHeaderText',cfg.comingSoonHeaderText??'COMING SOON');
+  setCheck('showImage',cfg.showImage??true); setCheck('showDate',cfg.showDate??true);
+  setCheck('showTime',cfg.showTime??false); setCheck('showVenue',cfg.showVenue??true);
+  setCheck('showButton',cfg.showButton??true); setCheck('venueOnSeparateLine',cfg.venueOnSeparateLine??false);
+  setField('buttonText',cfg.buttonText??'GET TICKETS'); setField('headerSubtitle',cfg.headerSubtitle??'THE WEEKLY MIX');
+  setField('headerText',cfg.headerText??''); setField('footerText',cfg.footerText??'');
+  const colors=[['backgroundColor','bgColorPicker','#000000'],['textColor','textColorPicker','#ffffff'],['headingColor','headingColorPicker','#ffffff'],['buttonColor','buttonColorPicker','#ffffff'],['buttonTextColor','btnTextColorPicker','#000000']];
+  colors.forEach(([fId,pId,def])=>{ const val=cfg[fId]??def; setField(fId,val); if(ge(pId)) ge(pId).value=val; });
+  setField('headingFontSize',cfg.headingFontSize??'24'); setField('bodyFontSize',cfg.bodyFontSize??'18');
+  setField('dateFontSize',cfg.dateFontSize??'18'); setField('imageWidth',cfg.imageWidth??'200');
+  setField('contentWidth',cfg.contentWidth??'600'); setField('borderRadius',cfg.borderRadius??'4');
+  setCheck('spotlightEnabled',data.spotlightEnabled??false);
+  ge('spotlightOptions').style.display=data.spotlightEnabled?'block':'none';
+  // If full event data was saved (v2+), restore directly without API call
+  if(data.selectedEventData && data.selectedEventData.length > 0) {
+    selectedEvents = data.selectedEventData;
+    allEvents = data.selectedEventData;
+    // Also try to fetch fresh events in background to refresh allEvents
+    if(s.city||s.venueId||s.stateCode||s.keyword||s.classificationName) {
+      ge('searchStatus').style.display='flex';
+      fetchBothCountries(s).then(results => {
+        if(results.length > 0) {
+          // Merge: keep selected events, add new ones to allEvents pool
+          const existingIds = new Set(selectedEvents.map(e=>e.id));
+          const newIds = new Set(results.map(e=>e.id));
+          allEvents = [...selectedEvents];
+          results.forEach(e => { if(!existingIds.has(e.id)) allEvents.push(e); });
+        }
+        showResults(s.city,s.stateCode,s.keyword,s.classificationName);
+      }).catch(()=>{
+        showResults(s.city,s.stateCode,s.keyword,s.classificationName);
+      }).finally(()=>{ ge('searchStatus').style.display='none'; });
+    } else {
+      showResults('','','','');
+    }
+  } else if(s.city||s.venueId||s.stateCode||s.keyword||s.classificationName) {
+    // Legacy v1 save — fall back to API fetch
+    ge('searchStatus').style.display='flex'; ge('noSearchPlaceholder').style.display='none';
+    try {
+      const results=await fetchBothCountries(s);
+      allEvents=results;
+      const savedIds=data.selectedEventIds||[];
+      selectedEvents=savedIds.map(id=>allEvents.find(e=>e.id===id)).filter(Boolean);
+      showResults(s.city,s.stateCode,s.keyword,s.classificationName);
+    } catch(err) { ge('searchError').textContent='Could not reload events: '+err.message; ge('searchError').style.display='block'; }
+    finally { ge('searchStatus').style.display='none'; }
+  }
+}
+function setField(id,val) { const el=ge(id); if(el&&val!==undefined&&val!==null) el.value=val; }
+function setCheck(id,val) { const el=ge(id); if(el) el.checked=!!val; }
+
+// -- AUTO-SAVE --
+function autoSave() {
+  try {
+    const data = buildCampaignData('AutoSave');
+    localStorage.setItem('weeklyMixAutoSave', JSON.stringify(data));
+    updateRestoreButton();
+  } catch(e) { /* silent — localStorage may be full (e.g. large base64 image overrides) */ }
+}
+
+function updateRestoreButton() {
+  const btn = ge('restoreBtn');
+  if (btn) btn.style.display = localStorage.getItem('weeklyMixAutoSave') ? 'inline-flex' : 'none';
+}
+
+function restoreSession() {
+  const saved = localStorage.getItem('weeklyMixAutoSave');
+  if (!saved) { showToast('No saved session found', 'error'); return; }
+  try {
+    const data = JSON.parse(saved);
+    applyCampaignData(data);
+    showToast('Session restored', 'success');
+  } catch(e) {
+    showToast('Could not restore session: ' + e.message, 'error');
+  }
+}
+
+function newCampaign() {
+  if (!confirm('Start a new campaign? All current selections and settings will be cleared.')) return;
+  // Reset state
+  allEvents = []; filteredEvents = []; selectedEvents = [];
+  spotlightEventId = null; eventOverrides = {}; imageOverrides = {};
+  expandedEditCards = {};
+  generatedHTML = '';
+  // Reset search fields
+  setField('city',''); setField('stateCode',''); setField('venueId','');
+  setField('keyword',''); ge('classificationName').value = '';
+  // Reset dropdowns
+  ge('marketSelect').value = ''; ge('venueSelect').value = '';
+  ge('venueQuickLinks').style.display = 'none';
+  // Reset spotlight
+  setCheck('spotlightEnabled', false);
+  ge('spotlightOptions').style.display = 'none';
+  // Reset branding to defaults
+  setField('headerSubtitle','THE WEEKLY MIX'); setField('headerText',''); setField('footerText','');
+  // Reset dates to defaults
+  initDates();
+  // Reset UI panels
+  ge('noSearchPlaceholder').style.display = 'flex';
+  ge('mainContent').style.display = 'none';
+  ge('resultsHeader').style.display = 'none';
+  ge('searchError').style.display = 'none';
+  updateOutput();
+  showToast('New campaign started', 'success');
+}
+
+// -- TOAST --
+let toastTimer;
+function showToast(msg,type='') {
+  const t=ge('toast'); t.textContent=msg; t.className='show'+(type?' '+type:'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>{t.className='';},3000);
+}
+
+// -- KEYBOARD --
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+ge('saveModal').addEventListener('click',e=>{if(e.target===ge('saveModal'))closeModal();});
+ge('saveCampaignName').addEventListener('keydown',e=>{if(e.key==='Enter')confirmSave();});
+</script>
+</body>
+</html>
