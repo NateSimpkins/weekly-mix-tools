@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | { read -r f; bn=$(basename \"$f\"); cd \"/Users/Nate.Simpkins/Claude Projects/weekly-mix-tools\" && git add \"$f\" && git -c user.email=\"nate.simpkins@ticketmaster.com\" -c user.name=\"Nate Simpkins\" commit -m \"Update $bn\" && git push origin main; } 2>/dev/null || true",
+            "statusMessage": "Committing and pushing to GitHub..."
+          }
+        ]
+      }
+    ]
+  }
+}
