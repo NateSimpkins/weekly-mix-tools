@@ -340,6 +340,28 @@
   </div>
 </div>
 
+<!-- SETTINGS MODAL -->
+<div class="modal-bg" id="settingsModal">
+  <div class="modal">
+    <h3>S3 Upload Credentials</h3>
+    <p>Stored locally in your browser. Never sent anywhere except directly to S3.</p>
+    <div style="margin:14px 0;display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label>AWS Access Key ID</label>
+        <input type="text" id="settingsAccessKey" placeholder="AKIA..." autocomplete="off" spellcheck="false">
+      </div>
+      <div>
+        <label>AWS Secret Access Key</label>
+        <input type="password" id="settingsSecretKey" placeholder="••••••••••••••••••••••••" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeSettingsModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- HEADER -->
 <div class="app-header">
   <div>
@@ -347,6 +369,10 @@
     <p>Powered by Ticketmaster Discovery API</p>
   </div>
   <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" onclick="openSettingsModal()" title="S3 upload credentials">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Settings
+    </button>
     <button class="btn btn-ghost btn-sm" id="restoreBtn" onclick="restoreSession()" style="display:none" title="Reload the last auto-saved state">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
       Restore Session
@@ -761,8 +787,10 @@
 
 <script>
 const API_KEY = 'YrzFaMA83jmEAY4tm0gQJz7SioutA1kU';
-const CLOUDINARY_CLOUD_NAME = 'drhdiuluw';
-const CLOUDINARY_UPLOAD_PRESET = 'weekly_mix_unsigned';
+const S3_BUCKET = 'weekly-mix-image';
+const S3_REGION = 'us-east-1';
+let S3_ACCESS_KEY_ID = localStorage.getItem('s3_access_key_id') || '';
+let S3_SECRET_ACCESS_KEY = localStorage.getItem('s3_secret_access_key') || '';
 const TM_BASE = 'https://app.ticketmaster.com/discovery/v2';
 const DIVIDER_IMG = 'https://assets.engagement.ticketmaster.com/images/properties/4261/images/6994def69cfea.png';
 const TW_LOGO = 'https://assets.engagement.ticketmaster.com/images/properties/4261/images/66e468d64cd5c.png';
@@ -1377,20 +1405,64 @@ function handleImgFile(event, id) {
   event.target.value = '';
 }
 
+function toHex(buf) {
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function sha256(data) {
+  const buf = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+  return toHex(await crypto.subtle.digest('SHA-256', buf));
+}
+async function hmacSha256(key, msg) {
+  const k = key instanceof Uint8Array ? key : new TextEncoder().encode(key);
+  const ck = await crypto.subtle.importKey('raw', k, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
+  const m = typeof msg === 'string' ? new TextEncoder().encode(msg) : msg;
+  return new Uint8Array(await crypto.subtle.sign('HMAC', ck, m));
+}
+async function getS3SigningKey(secret, date, region) {
+  let k = await hmacSha256('AWS4' + secret, date);
+  k = await hmacSha256(k, region);
+  k = await hmacSha256(k, 's3');
+  return hmacSha256(k, 'aws4_request');
+}
+async function s3PresignedPut(key) {
+  const now = new Date();
+  const ymd = now.toISOString().slice(0,10).replace(/-/g,'');
+  const dt = now.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const host = `${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
+  const scope = `${ymd}/${S3_REGION}/s3/aws4_request`;
+  const params = [
+    ['X-Amz-Algorithm','AWS4-HMAC-SHA256'],
+    ['X-Amz-Credential',`${S3_ACCESS_KEY_ID}/${scope}`],
+    ['X-Amz-Date',dt],
+    ['X-Amz-Expires','300'],
+    ['X-Amz-SignedHeaders','host'],
+  ].sort((a,b) => a[0].localeCompare(b[0]));
+  const qs = params.map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  const canonicalReq = `PUT\n/${key}\n${qs}\nhost:${host}\n\nhost\nUNSIGNED-PAYLOAD`;
+  const sts = `AWS4-HMAC-SHA256\n${dt}\n${scope}\n${await sha256(canonicalReq)}`;
+  const sigKey = await getS3SigningKey(S3_SECRET_ACCESS_KEY, ymd, S3_REGION);
+  const sig = toHex(await hmacSha256(sigKey, sts));
+  return `https://${host}/${key}?${qs}&X-Amz-Signature=${sig}`;
+}
+
 async function readImageFile(file, id) {
+  if (!S3_ACCESS_KEY_ID || !S3_SECRET_ACCESS_KEY) {
+    showToast('Add your S3 credentials in Settings before uploading', 'error');
+    openSettingsModal();
+    return;
+  }
   const zone = document.getElementById('dropzone-' + id);
   if (zone) zone.classList.add('uploading');
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
-      method: 'POST',
-      body: formData,
+    const key = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    const presignedUrl = await s3PresignedPut(key);
+    const res = await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
     });
     if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-    const data = await res.json();
-    const url = data.secure_url;
+    const url = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`;
     imageOverrides[id] = url;
     const urlField = document.getElementById('imgurl-' + id);
     if (urlField) urlField.value = url;
@@ -1637,6 +1709,21 @@ function downloadHTML() {
 }
 
 // -- SAVE / LOAD --
+function openSettingsModal() {
+  ge('settingsAccessKey').value = S3_ACCESS_KEY_ID;
+  ge('settingsSecretKey').value = S3_SECRET_ACCESS_KEY;
+  ge('settingsModal').classList.add('open');
+}
+function closeSettingsModal() { ge('settingsModal').classList.remove('open'); }
+function saveSettings() {
+  S3_ACCESS_KEY_ID = ge('settingsAccessKey').value.trim();
+  S3_SECRET_ACCESS_KEY = ge('settingsSecretKey').value.trim();
+  localStorage.setItem('s3_access_key_id', S3_ACCESS_KEY_ID);
+  localStorage.setItem('s3_secret_access_key', S3_SECRET_ACCESS_KEY);
+  closeSettingsModal();
+  showToast('S3 credentials saved', 'success');
+}
+
 function openSaveModal() {
   const city=v('city'); const today=new Date().toLocaleDateString('en-US',{month:'short',year:'numeric'});
   ge('saveCampaignName').value=city?`${city} ${today}`:`Campaign ${today}`;
