@@ -557,11 +557,8 @@ const API_KEY    = 'YrzFaMA83jmEAY4tm0gQJz7SioutA1kU';
 const TM_BASE    = 'https://app.ticketmaster.com/discovery/v2';
 const DIVIDER_IMG = 'https://assets.engagement.ticketmaster.com/images/properties/4261/images/6994def69cfea.png';
 const TW_LOGO_URL = 'assets/ticketweb-white.png';
-const S3_BUCKET  = 'weekly-mix-image';
-const S3_REGION  = 'us-east-1';
-const S3_ACCESS_KEY_ID     = '__S3_ACCESS_KEY_ID__';
-const S3_SECRET_ACCESS_KEY = '__S3_SECRET_ACCESS_KEY__';
 const LAMBDA_ENDPOINT = 'https://uu8lkytqe5.execute-api.us-east-1.amazonaws.com/submit';
+const LAMBDA_UPLOAD   = 'https://uu8lkytqe5.execute-api.us-east-1.amazonaws.com/upload';
 
 let currentEvent = null;
 let uploadedImageUrl = '';
@@ -822,9 +819,8 @@ function maybeShowCropModal(file) {
     const ratio = img.naturalWidth / img.naturalHeight;
     URL.revokeObjectURL(url);
     if (Math.abs(ratio - CROP_RATIO) <= CROP_TOLERANCE) {
-      // Update preview immediately with local blob URL
+      // Show local blob preview immediately, upload in background
       const previewUrl = URL.createObjectURL(file);
-      uploadedImageUrl = previewUrl;
       const thumb = document.getElementById('imgThumb');
       thumb.innerHTML = `<img src="${escAttr(previewUrl)}" alt="">`;
       thumb.style.display = 'block';
@@ -877,9 +873,8 @@ function confirmCrop() {
   canvas.toBlob(function(blob) {
     const ext = (pendingUploadFile?.name || 'image.jpg').split('.').pop();
     const croppedFile = new File([blob], pendingUploadFile?.name || `cropped.${ext}`, { type: blob.type });
-    // Update preview immediately with local blob URL
+    // Show local blob preview immediately; uploadedImageUrl set after Lambda upload
     const blobUrl = URL.createObjectURL(blob);
-    uploadedImageUrl = blobUrl;
     const thumb = document.getElementById('imgThumb');
     thumb.innerHTML = `<img src="${escAttr(blobUrl)}" alt="">`;
     thumb.style.display = 'block';
@@ -941,84 +936,52 @@ function onImageUrlPaste() {
   updatePreview();
 }
 
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function setSubmitEnabled(enabled) {
+  const btn = document.querySelector('.btn-submit');
+  if (btn) btn.disabled = !enabled;
+}
+
 async function uploadImageFile(file) {
-  if (!S3_ACCESS_KEY_ID || S3_ACCESS_KEY_ID.startsWith('__')) {
-    setDropStatus('S3 upload unavailable in local preview — paste an image URL instead.', false);
-    return;
-  }
   const zone = document.getElementById('imgDropZone');
   zone.classList.add('uploading');
-  setDropStatus('Uploading…', false);
+  setDropStatus('Uploading image…', false);
+  setSubmitEnabled(false);
   try {
-    const key = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-    const presignedUrl = await s3PresignedPut(key);
-    const res = await fetch(presignedUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type || 'application/octet-stream' },
-      body: file,
+    const base64 = await fileToBase64(file);
+    const res = await fetch(LAMBDA_UPLOAD, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, contentType: file.type || 'image/jpeg' }),
     });
-    if (!res.ok) throw new Error(`Upload failed (${res.status})`);
-    const url = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`;
-    uploadedImageUrl = url;
-    document.getElementById('f-imageUrl').value = url;
-    const thumb = document.getElementById('imgThumb');
-    thumb.innerHTML = `<img src="${escAttr(url)}" alt="">`;
-    thumb.style.display = 'block';
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
+    uploadedImageUrl = data.url;
+    document.getElementById('f-imageUrl').value = data.url;
     zone.classList.remove('uploading');
     zone.classList.add('has-image');
-    setDropStatus('✓ Uploaded — ' + file.name, true);
+    setDropStatus('✓ Uploaded', true);
     updatePreview();
   } catch(e) {
+    uploadedImageUrl = '';
     zone.classList.remove('uploading');
     setDropStatus('Upload failed: ' + e.message, false);
+  } finally {
+    setSubmitEnabled(true);
   }
 }
 
 function setDropStatus(msg, success) {
   const label = document.getElementById('dropLabel');
   label.innerHTML = `<span style="color:${success ? 'var(--green)' : 'var(--text3)'}">${esc(msg)}</span>`;
-}
-
-// ── S3 SIGNING (exact copy from index.html) ──
-
-function toHex(buf) {
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-async function sha256(data) {
-  const buf = typeof data === 'string' ? new TextEncoder().encode(data) : data;
-  return toHex(await crypto.subtle.digest('SHA-256', buf));
-}
-async function hmacSha256(key, msg) {
-  const k = key instanceof Uint8Array ? key : new TextEncoder().encode(key);
-  const ck = await crypto.subtle.importKey('raw', k, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
-  const m = typeof msg === 'string' ? new TextEncoder().encode(msg) : msg;
-  return new Uint8Array(await crypto.subtle.sign('HMAC', ck, m));
-}
-async function getS3SigningKey(secret, date, region) {
-  let k = await hmacSha256('AWS4' + secret, date);
-  k = await hmacSha256(k, region);
-  k = await hmacSha256(k, 's3');
-  return hmacSha256(k, 'aws4_request');
-}
-async function s3PresignedPut(key) {
-  const now = new Date();
-  const ymd = now.toISOString().slice(0,10).replace(/-/g,'');
-  const dt  = now.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
-  const host = `${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
-  const scope = `${ymd}/${S3_REGION}/s3/aws4_request`;
-  const params = [
-    ['X-Amz-Algorithm','AWS4-HMAC-SHA256'],
-    ['X-Amz-Credential',`${S3_ACCESS_KEY_ID}/${scope}`],
-    ['X-Amz-Date',dt],
-    ['X-Amz-Expires','300'],
-    ['X-Amz-SignedHeaders','host'],
-  ].sort((a,b) => a[0].localeCompare(b[0]));
-  const qs = params.map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
-  const canonicalReq = `PUT\n/${key}\n${qs}\nhost:${host}\n\nhost\nUNSIGNED-PAYLOAD`;
-  const sts = `AWS4-HMAC-SHA256\n${dt}\n${scope}\n${await sha256(canonicalReq)}`;
-  const sigKey = await getS3SigningKey(S3_SECRET_ACCESS_KEY, ymd, S3_REGION);
-  const sig = toHex(await hmacSha256(sigKey, sts));
-  return `https://${host}/${key}?${qs}&X-Amz-Signature=${sig}`;
 }
 
 // ── HELPERS ──

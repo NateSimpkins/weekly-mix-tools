@@ -63,6 +63,31 @@ export const handler = async (event) => {
     }
   }
 
+  // ── UPLOAD route ──────────────────────────────────────────────────────────
+  if (path === '/upload') {
+    try {
+      const body = JSON.parse(event.body || '{}');
+      const { image, contentType } = body;
+      if (!image || !contentType) {
+        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'image and contentType are required.' }) };
+      }
+      const ext = contentType === 'image/png' ? 'png' : 'jpg';
+      const key = `images/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      await s3.send(new PutObjectCommand({
+        Bucket: process.env.S3_BUCKET,
+        Key: key,
+        Body: Buffer.from(image, 'base64'),
+        ContentType: contentType,
+        ACL: 'public-read',
+      }));
+      const url = `https://weekly-mix-image.s3.us-east-1.amazonaws.com/${key}`;
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ url }) };
+    } catch (err) {
+      console.error('weekly-mix-upload error:', err);
+      return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
+    }
+  }
+
   // ── SUBMIT route ──────────────────────────────────────────────────────────
   try {
     const body = JSON.parse(event.body || '{}');
