@@ -5,12 +5,6 @@
   NODE_VERSION = "20"
   SECRETS_SCAN_ENABLED = "false"
 
-[[redirects]]
-  from = "/"
-  to = "/submissions.html"
-  status = 301
-  force = true
-
 [[headers]]
   for = "/*"
   [headers.values]
