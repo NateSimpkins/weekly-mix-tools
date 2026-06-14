@@ -383,12 +383,12 @@
     letter-spacing: 0.5px;
   }
   .crop-modal-img-wrap {
-    max-height: 380px;
+    border-radius: var(--radius);
     overflow: hidden;
     background: #000;
-    border-radius: var(--radius);
   }
   .crop-modal-img-wrap img { display: block; max-width: 100%; }
+  .crop-modal-img-wrap .cropper-bg { background-image: none; background-color: #000; }
   .crop-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
   .btn-crop-cancel {
     padding: 10px 20px;
@@ -412,25 +412,6 @@
     cursor: pointer;
     transition: opacity 0.15s;
   }
-  .btn-crop-confirm:disabled { opacity: 0.35; cursor: not-allowed; }
-  .crop-confirm-label {
-    display: flex;
-    align-items: flex-start;
-    gap: 9px;
-    font-size: 12px;
-    color: var(--text2);
-    line-height: 1.4;
-    cursor: pointer;
-  }
-  .crop-confirm-label input[type="checkbox"] {
-    margin-top: 2px;
-    flex-shrink: 0;
-    accent-color: var(--accent);
-    width: 14px;
-    height: 14px;
-    cursor: pointer;
-  }
-
   @media (max-width: 480px) {
     .page-header h1 { font-size: 26px; }
     .pc-event-row { flex-direction: column; }
@@ -447,7 +428,6 @@
     <div class="eyebrow">The Weekly Mix</div>
     <h1>Submit Your Event</h1>
     <p>Paste your Ticketmaster or TicketWeb event URL below</p>
-    <img src="https://assets.engagement.ticketmaster.com/images/properties/4261/images/6994def69cfea.png" alt="" class="header-divider">
   </div>
 
   <!-- URL INPUT -->
@@ -532,13 +512,9 @@
       <div class="crop-modal-img-wrap">
         <img id="cropImg" src="" alt="">
       </div>
-      <label class="crop-confirm-label">
-        <input type="checkbox" id="cropConfirmCheck" onchange="syncCropConfirmBtn()">
-        I confirm this image does not contain text, logos, or sponsor content.
-      </label>
       <div class="crop-modal-actions">
         <button class="btn-crop-cancel" onclick="cancelCrop()">Cancel</button>
-        <button class="btn-crop-confirm" id="btnCropConfirm" onclick="confirmCrop()" disabled>Use This Crop</button>
+        <button class="btn-crop-confirm" id="btnCropConfirm" onclick="confirmCrop()">Use This Crop</button>
       </div>
     </div>
   </div>
@@ -820,6 +796,13 @@ function maybeShowCropModal(file) {
     const ratio = img.naturalWidth / img.naturalHeight;
     URL.revokeObjectURL(url);
     if (Math.abs(ratio - CROP_RATIO) <= CROP_TOLERANCE) {
+      // Update preview immediately with local blob URL
+      const previewUrl = URL.createObjectURL(file);
+      uploadedImageUrl = previewUrl;
+      const thumb = document.getElementById('imgThumb');
+      thumb.innerHTML = `<img src="${escAttr(previewUrl)}" alt="">`;
+      thumb.style.display = 'block';
+      updatePreview();
       uploadImageFile(file);
     } else {
       openCropModal(file);
@@ -858,22 +841,23 @@ function openCropModal(file) {
   };
 }
 
-function syncCropConfirmBtn() {
-  const checked = document.getElementById('cropConfirmCheck')?.checked;
-  const btn = document.getElementById('btnCropConfirm');
-  if (btn) btn.disabled = !checked;
-}
-
 function cancelCrop() {
   closeCropModal();
 }
 
 function confirmCrop() {
   if (!cropperInstance) return;
-  const canvas = cropperInstance.getCroppedCanvas({ width: 800, height: 600 });
+  const canvas = cropperInstance.getCroppedCanvas({ width: 1600, height: 900 });
   canvas.toBlob(function(blob) {
     const ext = (pendingUploadFile?.name || 'image.jpg').split('.').pop();
     const croppedFile = new File([blob], pendingUploadFile?.name || `cropped.${ext}`, { type: blob.type });
+    // Update preview immediately with local blob URL
+    const blobUrl = URL.createObjectURL(blob);
+    uploadedImageUrl = blobUrl;
+    const thumb = document.getElementById('imgThumb');
+    thumb.innerHTML = `<img src="${escAttr(blobUrl)}" alt="">`;
+    thumb.style.display = 'block';
+    updatePreview();
     closeCropModal();
     uploadImageFile(croppedFile);
   }, 'image/jpeg', 0.92);
@@ -886,10 +870,6 @@ function closeCropModal() {
   if (cropImg.src.startsWith('blob:')) URL.revokeObjectURL(cropImg.src);
   cropImg.src = '';
   pendingUploadFile = null;
-  // Reset checkbox and button state
-  const cb = document.getElementById('cropConfirmCheck');
-  if (cb) cb.checked = false;
-  syncCropConfirmBtn();
   // Remove safe zone canvas if present
   const existing = document.getElementById('safeZoneCanvas');
   if (existing) existing.remove();

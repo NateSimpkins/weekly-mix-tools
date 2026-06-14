@@ -299,6 +299,28 @@
   .modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 5px; color: var(--text); }
   .modal p { font-size: 13px; color: var(--text2); margin-bottom: 14px; }
   .modal-actions { display: flex; gap: 7px; justify-content: flex-end; }
+  /* Submissions badge */
+  .submissions-badge { display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:#FF2D78;color:#fff;font-size:12px;font-weight:700;border-radius:20px;border:none;cursor:pointer;transition:opacity 0.15s;font-family:var(--font); }
+  .submissions-badge:hover { opacity:0.85; }
+  /* Submissions modal */
+  .subs-modal-bg { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:210;align-items:flex-start;justify-content:center;padding:60px 20px;overflow-y:auto; }
+  .subs-modal-bg.open { display:flex; }
+  .subs-modal { background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);width:100%;max-width:640px;flex-shrink:0; }
+  .subs-modal-header { display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border); }
+  .subs-modal-title { font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text2); }
+  .subs-modal-close { width:28px;height:28px;background:none;border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px; }
+  .subs-modal-close:hover { background:var(--surface3); }
+  .subs-modal-body { padding:18px 22px;display:flex;flex-direction:column;gap:12px; }
+  .sub-card { background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;gap:12px;align-items:flex-start; }
+  .sub-card-thumb { width:72px;height:54px;border-radius:4px;object-fit:cover;background:var(--surface3);flex-shrink:0; }
+  .sub-card-info { flex:1;min-width:0; }
+  .sub-card-name { font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px; }
+  .sub-card-meta { font-size:11px;color:var(--text3); }
+  .sub-card-actions { display:flex;gap:8px;margin-top:10px; }
+  .btn-add-to-campaign { padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer; }
+  .btn-add-to-campaign:hover { opacity:0.85; }
+  .btn-mark-used { padding:6px 12px;background:var(--surface3);color:var(--text2);border:1px solid var(--border2);border-radius:6px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer; }
+  .btn-mark-used:hover { background:var(--surface); }
 
   /* ── UTILS ── */
   .flex { display: flex; }
@@ -326,6 +348,19 @@
 
 <div id="toast"></div>
 
+<!-- SUBMISSIONS MODAL -->
+<div class="subs-modal-bg" id="subsModalBg" onclick="if(event.target===this)closeSubmissionsModal()">
+  <div class="subs-modal">
+    <div class="subs-modal-header">
+      <div class="subs-modal-title">Pending Submissions</div>
+      <button class="subs-modal-close" onclick="closeSubmissionsModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="subs-modal-body" id="subsModalBody"></div>
+  </div>
+</div>
+
 <!-- SAVE MODAL -->
 <div class="modal-bg" id="saveModal">
   <div class="modal">
@@ -348,7 +383,10 @@
 <!-- HEADER -->
 <div class="app-header">
   <div>
-    <h1>Email Campaign Creator</h1>
+    <div style="display:flex;align-items:center;gap:10px">
+      <h1>Email Campaign Creator</h1>
+      <button class="submissions-badge" id="submissionsBadge" onclick="openSubmissionsModal()" style="display:none">● <span id="submissionsCount">0</span> Submissions</button>
+    </div>
     <p>Powered by Ticketmaster Discovery API</p>
   </div>
   <div class="header-actions">
@@ -1954,8 +1992,179 @@ async function lookupEventUrl() {
   }
 }
 
+// -- SUBMISSIONS --
+
+let pendingSubmissions = [];
+
+async function s3PresignedGet(key) {
+  const now = new Date();
+  const ymd = now.toISOString().slice(0,10).replace(/-/g,'');
+  const dt  = now.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const host = `${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
+  const scope = `${ymd}/${S3_REGION}/s3/aws4_request`;
+  const params = [
+    ['X-Amz-Algorithm','AWS4-HMAC-SHA256'],
+    ['X-Amz-Credential',`${S3_ACCESS_KEY_ID}/${scope}`],
+    ['X-Amz-Date',dt],
+    ['X-Amz-Expires','300'],
+    ['X-Amz-SignedHeaders','host'],
+  ].sort((a,b) => a[0]<b[0]?-1:a[0]>b[0]?1:0);
+  const qs = params.map(([k,v])=>`${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  const canonicalReq = `GET\n/${key}\n${qs}\nhost:${host}\n\nhost\nUNSIGNED-PAYLOAD`;
+  const sts = `AWS4-HMAC-SHA256\n${dt}\n${scope}\n${await sha256(canonicalReq)}`;
+  const sigKey = await getS3SigningKey(S3_SECRET_ACCESS_KEY, ymd, S3_REGION);
+  const sig = toHex(await hmacSha256(sigKey, sts));
+  return `https://${host}/${key}?${qs}&X-Amz-Signature=${sig}`;
+}
+
+async function s3ListObjects(prefix) {
+  const now = new Date();
+  const ymd = now.toISOString().slice(0,10).replace(/-/g,'');
+  const dt  = now.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const host = `${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
+  const scope = `${ymd}/${S3_REGION}/s3/aws4_request`;
+  const allParams = [
+    ['X-Amz-Algorithm','AWS4-HMAC-SHA256'],
+    ['X-Amz-Credential',`${S3_ACCESS_KEY_ID}/${scope}`],
+    ['X-Amz-Date',dt],
+    ['X-Amz-Expires','300'],
+    ['X-Amz-SignedHeaders','host'],
+    ['list-type','2'],
+    ['prefix',prefix],
+  ].sort((a,b) => a[0]<b[0]?-1:a[0]>b[0]?1:0);
+  const qs = allParams.map(([k,v])=>`${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  const canonicalReq = `GET\n/\n${qs}\nhost:${host}\n\nhost\nUNSIGNED-PAYLOAD`;
+  const sts = `AWS4-HMAC-SHA256\n${dt}\n${scope}\n${await sha256(canonicalReq)}`;
+  const sigKey = await getS3SigningKey(S3_SECRET_ACCESS_KEY, ymd, S3_REGION);
+  const sig = toHex(await hmacSha256(sigKey, sts));
+  const url = `https://${host}/?${qs}&X-Amz-Signature=${sig}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const xml = new DOMParser().parseFromString(text, 'application/xml');
+  return [...xml.querySelectorAll('Contents Key')].map(el => el.textContent).filter(k => k.endsWith('.json'));
+}
+
+async function loadSubmissions() {
+  if (!S3_ACCESS_KEY_ID || S3_ACCESS_KEY_ID.startsWith('__')) return;
+  try {
+    const keys = await s3ListObjects('submissions/');
+    const submissions = [];
+    for (const key of keys) {
+      try {
+        const url = await s3PresignedGet(key);
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.status !== 'used') submissions.push({ ...data, _s3Key: key });
+      } catch {}
+    }
+    pendingSubmissions = submissions;
+    updateSubmissionsBadge();
+  } catch {}
+}
+
+function updateSubmissionsBadge() {
+  const count = pendingSubmissions.length;
+  ge('submissionsCount').textContent = count;
+  ge('submissionsBadge').style.display = count > 0 ? 'inline-flex' : 'none';
+}
+
+function openSubmissionsModal() {
+  renderSubmissionsModal();
+  ge('subsModalBg').classList.add('open');
+}
+
+function closeSubmissionsModal() {
+  ge('subsModalBg').classList.remove('open');
+}
+
+function renderSubmissionsModal() {
+  const body = ge('subsModalBody');
+  if (!pendingSubmissions.length) {
+    body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No pending submissions.</div>';
+    return;
+  }
+  body.innerHTML = pendingSubmissions.map((sub, idx) => `
+    <div class="sub-card" id="subcard-${idx}">
+      ${sub.imageUrl
+        ? `<img class="sub-card-thumb" src="${escQ(sub.imageUrl)}" alt="">`
+        : `<div class="sub-card-thumb"></div>`}
+      <div class="sub-card-info">
+        <div class="sub-card-name">${esc(sub.name||'')}</div>
+        <div class="sub-card-meta">${[sub.market, sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : null, sub.email].filter(Boolean).map(esc).join(' · ')}</div>
+        ${sub.subtitle ? `<div class="sub-card-meta" style="margin-top:2px">${esc(sub.subtitle)}</div>` : ''}
+        ${sub.ticketUrl ? `<div class="sub-card-meta" style="margin-top:2px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sub.ticketUrl.slice(0,70))}</div>` : ''}
+        <div class="sub-card-actions">
+          <button class="btn-add-to-campaign" onclick="addSubmissionToCampaign(${idx})">Add to Campaign</button>
+          <button class="btn-mark-used" onclick="markSubmissionUsed(${idx})">Mark as Used</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addSubmissionToCampaign(idx) {
+  const sub = pendingSubmissions[idx];
+  if (!sub) return;
+  const id = `sub-${Date.now()}${idx}`;
+  const fakeEvent = {
+    id,
+    name: sub.name || '',
+    url: sub.ticketUrl || '#',
+    dates: { start: { localDate: sub.submittedAt ? sub.submittedAt.slice(0,10) : '', localTime: null } },
+    images: sub.imageUrl ? [{ url: sub.imageUrl, width: 1024 }] : [],
+    _embedded: {
+      venues: [{ name: '', city: { name: sub.market || '' }, state: { stateCode: '' } }]
+    },
+    _isSubmission: true,
+  };
+  if (!allEvents.find(e => e.id === id)) allEvents.push(fakeEvent);
+  if (!selectedEvents.find(e => e.id === id)) selectedEvents.push(fakeEvent);
+  filteredEvents = [...allEvents];
+  if (sub.prefix || sub.subtitle) {
+    eventOverrides[id] = { prefix: sub.prefix || '', subtitle: sub.subtitle || '' };
+  }
+  if (sub.imageUrl) imageOverrides[id] = sub.imageUrl;
+  ge('mainContent').style.display = 'block';
+  ge('resultsHeader').style.display = 'flex';
+  ge('noSearchPlaceholder').style.display = 'none';
+  ge('resultsTitle').textContent = 'Results';
+  ge('eventsFoundBadge').textContent = `${allEvents.length} event${allEvents.length !== 1 ? 's' : ''}`;
+  renderAvailableList();
+  renderSelectedList();
+  if (typeof renderEditEventsList === 'function') renderEditEventsList();
+  if (typeof renderSpotlightList === 'function') renderSpotlightList();
+  updateSelectedBadge();
+  regenerate();
+  closeSubmissionsModal();
+  showToast(`"${sub.name}" added to campaign`, 'success');
+}
+
+async function markSubmissionUsed(idx) {
+  const sub = pendingSubmissions[idx];
+  if (!sub) return;
+  if (!confirm('Mark this submission as used? It will be removed from the queue.')) return;
+  try {
+    const updated = { ...sub, status: 'used' };
+    delete updated._s3Key;
+    const presignedUrl = await s3PresignedPut(sub._s3Key);
+    await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated, null, 2),
+    });
+    pendingSubmissions.splice(idx, 1);
+    updateSubmissionsBadge();
+    renderSubmissionsModal();
+    showToast('Submission marked as used');
+  } catch (err) {
+    alert('Failed to mark as used: ' + err.message);
+  }
+}
+
+loadSubmissions();
+
 // -- KEYBOARD --
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeSubmissionsModal();}});
 ge('saveModal').addEventListener('click',e=>{if(e.target===ge('saveModal'))closeModal();});
 ge('saveCampaignName').addEventListener('keydown',e=>{if(e.key==='Enter')confirmSave();});
 </script>
