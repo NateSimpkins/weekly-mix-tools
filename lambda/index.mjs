@@ -1,14 +1,32 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
-const s3  = new S3Client({ region: process.env.S3_REGION });
-const ses = new SESClient({ region: process.env.AWS_REGION });
+const s3 = new S3Client({ region: process.env.S3_REGION });
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
+
+const ASANA_API = 'https://app.asana.com/api/1.0';
+
+async function asanaPost(path, data) {
+  const res = await fetch(`${ASANA_API}${path}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.ASANA_ACCESS_TOKEN}`,
+      'Content-Type':  'application/json',
+      'Accept':        'application/json',
+    },
+    body: JSON.stringify({ data }),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    const msg = json.errors?.[0]?.message || res.statusText;
+    throw new Error(`Asana API error (${res.status}): ${msg}`);
+  }
+  return json.data;
+}
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
@@ -42,61 +60,31 @@ export const handler = async (event) => {
       ContentType: 'application/json',
     }));
 
-    // 2. Confirmation email to submitter
-    await ses.send(new SendEmailCommand({
-      Source: process.env.SES_SENDER_EMAIL,
-      Destination: { ToAddresses: [email] },
-      Message: {
-        Subject: { Data: `Your Weekly Mix submission has been received — ${name}` },
-        Body: {
-          Text: {
-            Data: [
-              `Hi there,`,
-              ``,
-              `Thanks for submitting to The Weekly Mix! We've received your event and the team will review it shortly.`,
-              ``,
-              `Submission details:`,
-              `  Event:   ${name}${prefix ? ` (${prefix})` : ''}`,
-              subtitle ? `  Subtitle: ${subtitle}` : null,
-              `  Market:  ${market || '—'}`,
-              `  Tickets: ${ticketUrl}`,
-              ``,
-              `We'll be in touch if we need anything else.`,
-              ``,
-              `— The Weekly Mix Team`,
-            ].filter(line => line !== null).join('\n'),
-          },
-        },
-      },
-    }));
+    // 2. Create Asana task
+    const taskNotes = [
+      `Event:       ${name}`,
+      prefix   ? `Prefix:      ${prefix}`   : null,
+      subtitle ? `Subtitle:    ${subtitle}` : null,
+      `Market:      ${market || '—'}`,
+      `Tickets:     ${ticketUrl}`,
+      imageUrl ? `Image:       ${imageUrl}` : null,
+      `Email:       ${email}`,
+      notes    ? `Notes:       ${notes}`    : null,
+      ``,
+      `Submitted:   ${submittedAt}`,
+      `S3 key:      ${s3Key}`,
+    ].filter(line => line !== null).join('\n');
 
-    // 3. Internal notification email
-    await ses.send(new SendEmailCommand({
-      Source: process.env.SES_SENDER_EMAIL,
-      Destination: { ToAddresses: [process.env.SES_NOTIFICATION_EMAIL] },
-      Message: {
-        Subject: { Data: `New Weekly Mix Submission — ${name}${market ? ` (${market})` : ''}` },
-        Body: {
-          Text: {
-            Data: [
-              `New submission received.`,
-              ``,
-              `Event:      ${name}`,
-              prefix   ? `Prefix:     ${prefix}`   : null,
-              subtitle ? `Subtitle:   ${subtitle}` : null,
-              `Market:     ${market || '—'}`,
-              `Tickets:    ${ticketUrl}`,
-              imageUrl ? `Image:      ${imageUrl}` : null,
-              `Email:      ${email}`,
-              notes    ? `Notes:      ${notes}`    : null,
-              ``,
-              `Submitted:  ${submittedAt}`,
-              `S3 key:     ${s3Key}`,
-            ].filter(line => line !== null).join('\n'),
-          },
-        },
-      },
-    }));
+    const task = await asanaPost('/tasks', {
+      name:      `[SUBMISSION] ${name} — ${market || 'No Market'}`,
+      notes:     taskNotes,
+      projects:  [process.env.ASANA_PROJECT_GID],
+    });
+
+    // 3. Add submitter as follower so Asana sends them a notification
+    await asanaPost(`/tasks/${task.gid}/addFollowers`, {
+      followers: [email],
+    });
 
     return {
       statusCode: 200,
