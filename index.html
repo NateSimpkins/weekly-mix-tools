@@ -405,6 +405,17 @@
 
     <div id="venueQuickLinks"></div>
 
+    <div class="section-rule">URL Lookup</div>
+
+    <div class="form-group">
+      <label>Paste a Ticketmaster or TicketWeb event URL</label>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input type="text" id="urlLookupInput" placeholder="https://www.ticketmaster.com/event/..." style="flex:1" onkeydown="if(event.key==='Enter')lookupEventUrl()">
+        <button id="urlLookupBtn" class="btn btn-primary btn-sm" onclick="lookupEventUrl()" style="white-space:nowrap;flex-shrink:0">Add Event</button>
+      </div>
+      <p id="urlLookupStatus" class="hint" style="min-height:1.2em"></p>
+    </div>
+
     <div class="section-rule">Event Search</div>
 
     <div class="form-group">
@@ -1854,6 +1865,88 @@ let toastTimer;
 function showToast(msg,type='') {
   const t=ge('toast'); t.textContent=msg; t.className='show'+(type?' '+type:'');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>{t.className='';},3000);
+}
+
+// -- URL LOOKUP --
+async function lookupEventUrl() {
+  const input = ge('urlLookupInput');
+  const btn = ge('urlLookupBtn');
+  const status = ge('urlLookupStatus');
+  const raw = input.value.trim();
+  if (!raw) { status.textContent = 'Paste a URL first.'; return; }
+
+  // TicketWeb: extract slug, convert to keyword search
+  // e.g. ticketweb.com/event/chris-porter-denver-improv-tickets/14089254
+  const twMatch = raw.match(/ticketweb\.com\/event\/([^/?]+)\/\d+/i);
+
+  // Ticketmaster: two URL patterns
+  // Pattern 1: ticketmaster.com/{slug}/event/{EVENTID}  (slug before /event/)
+  // Pattern 2: ticketmaster.com/event/{EVENTID}         (no slug)
+  const tmSlugBeforeMatch = raw.match(/ticketmaster\.com\/([A-Za-z0-9-]+)\/event\/([A-Za-z0-9]+)/i);
+  const tmIdOnlyMatch     = !tmSlugBeforeMatch && raw.match(/ticketmaster\.com\/event\/([A-Za-z0-9]+)/i);
+  const tmMatch = tmSlugBeforeMatch || tmIdOnlyMatch;
+
+  if (!twMatch && !tmMatch) {
+    status.textContent = 'Could not parse event ID from that URL.';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px"></span> Looking up…';
+  status.textContent = '';
+
+  try {
+    let fetchUrl;
+    if (twMatch) {
+      const keyword = twMatch[1].replace(/-tickets?$/i, '').replace(/-/g, ' ');
+      fetchUrl = `${TM_BASE}/events.json?apikey=${API_KEY}&keyword=${encodeURIComponent(keyword)}&countryCode=US&size=1`;
+    } else {
+      // tmSlugBeforeMatch: [1]=slug, [2]=ID  |  tmIdOnlyMatch: [1]=ID
+      const tmSlug = tmMatch[2] ? tmMatch[1] : null;
+      const tmId   = tmMatch[2] || tmMatch[1];
+      const fullKeyword = tmSlug ? tmSlug.replace(/-tickets?$/i, '').replace(/-/g, ' ') : tmId;
+      const keyword = fullKeyword.split(' ').slice(0, 4).join(' ');
+      fetchUrl = `${TM_BASE}/events.json?apikey=${API_KEY}&keyword=${encodeURIComponent(keyword)}&countryCode=US&size=10`;
+    }
+    const res = await fetch(fetchUrl);
+    const data = await res.json();
+    if (!res.ok || data.errors || data.fault) {
+      throw new Error(data.errors?.[0]?.detail || data.fault?.faultstring || `API error: ${res.status}`);
+    }
+    const events = data._embedded?.events || [];
+    console.log('[URL Lookup] keyword:', new URL(fetchUrl).searchParams.get('keyword'), '| results:', events.length);
+    if (!events.length) throw new Error('Event not found.');
+    let event;
+    if (!twMatch && tmMatch) {
+      const tmId = tmMatch[2] || tmMatch[1];
+      event = events.find(e => e.url && e.url.toLowerCase().includes(tmId.toLowerCase())) || events[0];
+    } else {
+      event = events[0];
+    }
+    if (!event) throw new Error('Event not found.');
+
+    if (isSelected(event.id)) {
+      status.textContent = `Already added: ${event.name}`;
+    } else {
+      if (!allEvents.find(e => e.id === event.id)) allEvents.push(event);
+      selectedEvents.push(event);
+      filteredEvents = allEvents;
+      ge('mainContent').style.display = 'block';
+      ge('resultsHeader').style.display = 'flex';
+      ge('noSearchPlaceholder').style.display = 'none';
+      ge('resultsTitle').textContent = 'URL Lookup';
+      ge('eventsFoundBadge').textContent = `${allEvents.length} event${allEvents.length !== 1 ? 's' : ''}`;
+      renderAvailableList(); renderSelectedList(); renderEditEventsList(); renderSpotlightList();
+      updateSelectedBadge(); regenerate();
+      status.textContent = `✓ Added: ${event.name}`;
+      input.value = '';
+    }
+  } catch(e) {
+    status.textContent = `Error: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Add Event';
+  }
 }
 
 // -- KEYBOARD --

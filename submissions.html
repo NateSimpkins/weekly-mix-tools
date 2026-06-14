@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit Your Event — The Weekly Mix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #000000;
+    --surface: #0f1219;
+    --surface2: #141926;
+    --surface3: #1a2030;
+    --border: #1e2535;
+    --border2: #2a3448;
+    --border3: #3a4560;
+    --text: #eceef5;
+    --text2: #a0a8bf;
+    --text3: #5a6480;
+    --text4: #3a4255;
+    --accent: #026cdf;
+    --accent2: #0358bc;
+    --accent-light: rgba(2,108,223,0.14);
+    --accent-lighter: rgba(2,108,223,0.07);
+    --accent-border: rgba(2,108,223,0.35);
+    --green: #22c55e;
+    --green-light: rgba(34,197,94,0.12);
+    --red: #ef4444;
+    --red-light: rgba(239,68,68,0.1);
+    --radius: 8px;
+    --radius-lg: 11px;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 48px 20px 80px;
+  }
+
+  .page { max-width: 600px; margin: 0 auto; }
+
+  /* ── HEADER ── */
+  .page-header { text-align: center; margin-bottom: 36px; }
+  .page-header .eyebrow {
+    font-size: 11px;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text2);
+    margin-bottom: 8px;
+  }
+  .page-header h1 {
+    font-size: 36px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .page-header p { font-size: 14px; color: var(--text2); margin-bottom: 20px; }
+  .header-divider { display: block; width: 100%; height: auto; margin-bottom: 0; }
+
+  /* ── URL INPUT ── */
+  .url-section { margin-bottom: 12px; }
+  .url-section input[type="text"] {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    margin-bottom: 10px;
+  }
+  .url-section input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-lighter); }
+  .url-section input::placeholder { color: var(--text4); }
+
+  .btn-find {
+    width: 100%;
+    padding: 14px;
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.14s, opacity 0.14s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-find:hover { background: #e8e8e8; }
+  .btn-find:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .status-line {
+    min-height: 20px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text3);
+    text-align: center;
+  }
+  .status-line.error { color: var(--red); }
+  .status-line.success { color: var(--green); }
+
+  /* ── SPINNER ── */
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-top-color: #000;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── CASCADE ── */
+  .cascade-section {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+    margin-top: 32px;
+  }
+  .cascade-section.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+  /* ── SECTION RULE (centered) ── */
+  .section-rule {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin: 28px 0 16px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+  }
+  .section-rule::before { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .section-rule::after  { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ── PREVIEW CARD — mirrors email builder output ── */
+  .preview-card {
+    background: #000;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .pc-header {
+    padding: 20px 20px 10px;
+    text-align: center;
+    background: #000;
+  }
+  .pc-eyebrow {
+    font-size: 11px;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #ccc;
+    margin-bottom: 8px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .pc-city {
+    font-size: 36px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.1;
+  }
+  .pc-divider { display: block; width: 100%; height: auto; }
+  .pc-event-row {
+    display: flex;
+    gap: 16px;
+    padding: 20px;
+    align-items: flex-start;
+    background: #000;
+  }
+  .pc-img {
+    width: 200px;
+    flex-shrink: 0;
+    background: #111;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .pc-img img { width: 100%; display: block; height: auto; }
+  .pc-img-placeholder {
+    width: 200px;
+    height: 150px;
+    background: #1a1a1a;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #444;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .pc-info { flex: 1; min-width: 0; }
+  .pc-prefix {
+    font-size: 13px;
+    color: #ccc;
+    margin-bottom: 4px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .pc-name {
+    font-size: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #fff;
+    margin-bottom: 4px;
+    line-height: 1.2;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .pc-subtitle {
+    font-size: 13px;
+    color: #ccc;
+    margin-bottom: 6px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .pc-meta {
+    font-size: 14px;
+    color: #ccc;
+    margin-bottom: 4px;
+    line-height: 1.5;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .pc-date {
+    font-size: 14px;
+    color: #ccc;
+    margin-bottom: 14px;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .pc-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: #fff;
+    color: #000;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .pc-footer {
+    padding: 16px 20px;
+    text-align: center;
+    background: #000;
+    border-top: 1px solid #222;
+  }
+  .pc-footer img { height: 24px; width: auto; }
+
+  /* ── FORM FIELDS ── */
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text2);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    appearance: none;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-lighter); }
+  .form-group input::placeholder,
+  .form-group textarea::placeholder { color: var(--text4); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+  .form-group.has-error input,
+  .form-group.has-error textarea { border-color: var(--red); }
+  .field-error { font-size: 11px; color: var(--red); margin-top: 4px; display: none; }
+  .form-group.has-error .field-error { display: block; }
+
+  /* ── IMAGE DROP ZONE ── */
+  .img-drop-zone {
+    position: relative;
+    border: 1.5px dashed var(--border3);
+    border-radius: var(--radius);
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: var(--surface);
+    text-align: center;
+  }
+  .img-drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .img-drop-zone:hover { border-color: var(--accent-border); background: var(--accent-lighter); }
+  .img-drop-zone.dragover { border-color: var(--accent); background: var(--accent-light); border-style: solid; }
+  .img-drop-zone.has-image { border-color: rgba(34,197,94,0.4); background: var(--green-light); }
+  .img-drop-zone.uploading { opacity: 0.6; pointer-events: none; }
+  .drop-label { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text3); pointer-events: none; }
+  .img-preview-thumb { display: none; margin-top: 10px; }
+  .img-preview-thumb img { max-width: 120px; max-height: 90px; border-radius: 4px; border: 1px solid var(--border2); object-fit: cover; }
+
+  /* ── SUBMIT ── */
+  .btn-submit {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: background 0.14s;
+    margin-top: 8px;
+  }
+  .btn-submit:hover { background: var(--accent2); }
+
+  /* ── SUCCESS ── */
+  .success-msg { display: none; text-align: center; padding: 48px 20px; color: var(--green); font-size: 18px; font-weight: 600; }
+
+  /* ── CROP MODAL ── */
+  .crop-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .crop-modal-overlay.open { display: flex; }
+  .crop-modal {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    max-width: 560px;
+    width: calc(100% - 40px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .crop-modal-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .crop-modal-img-wrap {
+    max-height: 380px;
+    overflow: hidden;
+    background: #000;
+    border-radius: var(--radius);
+  }
+  .crop-modal-img-wrap img { display: block; max-width: 100%; }
+  .crop-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-crop-cancel {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn-crop-confirm {
+    padding: 10px 20px;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+    color: #fff;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-crop-confirm:disabled { opacity: 0.35; cursor: not-allowed; }
+  .crop-confirm-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.4;
+    cursor: pointer;
+  }
+  .crop-confirm-label input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+
+  @media (max-width: 480px) {
+    .page-header h1 { font-size: 26px; }
+    .pc-event-row { flex-direction: column; }
+    .pc-img, .pc-img-placeholder { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="eyebrow">The Weekly Mix</div>
+    <h1>Submit Your Event</h1>
+    <p>Paste your Ticketmaster or TicketWeb event URL below</p>
+    <img src="https://assets.engagement.ticketmaster.com/images/properties/4261/images/6994def69cfea.png" alt="" class="header-divider">
+  </div>
+
+  <!-- URL INPUT -->
+  <div class="url-section">
+    <input type="text" id="urlInput" placeholder="https://www.ticketweb.com/event/... or https://www.ticketmaster.com/event/..." onkeydown="if(event.key==='Enter')findEvent()">
+    <button class="btn-find" id="findBtn" onclick="findEvent()">Generate Submission</button>
+    <div class="status-line" id="statusLine"></div>
+  </div>
+
+  <!-- EVENT PREVIEW -->
+  <div class="cascade-section" id="previewSection">
+    <div class="section-rule">Event Preview</div>
+    <div class="preview-card" id="previewCard"></div>
+  </div>
+
+  <!-- EDITABLE FIELDS + SUBMIT -->
+  <div class="cascade-section" id="formSection">
+    <div class="section-rule">Customize Your Submission</div>
+
+    <div class="form-group" id="fg-eventName">
+      <label>Event Name <span style="color:var(--red)">*</span></label>
+      <input type="text" id="f-eventName" placeholder="Event name" oninput="updatePreview()">
+      <div class="field-error">Event name is required.</div>
+    </div>
+
+    <div class="form-group">
+      <label>Prefix / Descriptor <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input type="text" id="f-prefix" placeholder="e.g. An Evening with..." oninput="updatePreview()">
+    </div>
+
+    <div class="form-group">
+      <label>Subtitle <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <input type="text" id="f-subtitle" placeholder="Supporting act, tour name, etc." oninput="updatePreview()">
+    </div>
+
+    <div class="form-group" id="fg-ticketUrl">
+      <label>Ticket URL <span style="color:var(--red)">*</span></label>
+      <input type="text" id="f-ticketUrl" placeholder="https://..." oninput="updatePreview()">
+      <div class="field-error">Ticket URL is required.</div>
+    </div>
+
+    <div class="form-group">
+      <label>Image <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional — drag/drop or paste URL)</span></label>
+      <div class="img-drop-zone" id="imgDropZone"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="handleImgDrop(event)">
+        <input type="file" accept="image/*" onchange="handleImgFile(event)">
+        <div class="drop-label" id="dropLabel">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Drop image here or click to upload
+        </div>
+        <div class="img-preview-thumb" id="imgThumb"></div>
+      </div>
+      <input type="text" id="f-imageUrl" placeholder="Or paste image URL here" style="margin-top:6px;font-size:12px" oninput="onImageUrlPaste()">
+    </div>
+
+    <div class="form-group">
+      <label>Market / DMA</label>
+      <input type="text" id="f-market" placeholder="e.g. Chicago, New York, Denver">
+    </div>
+
+    <div class="form-group" id="fg-email">
+      <label>Your Email <span style="color:var(--red)">*</span></label>
+      <input type="email" id="f-email" placeholder="your@email.com">
+      <div class="field-error">A valid email is required.</div>
+    </div>
+
+    <div class="form-group">
+      <label>Notes <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></label>
+      <textarea id="f-notes" placeholder="Any additional context for the Weekly Mix team..."></textarea>
+    </div>
+
+    <button class="btn-submit" onclick="submitForm()">Submit to Weekly Mix</button>
+    <div id="submitError" style="display:none;margin-top:10px;font-size:12px;color:var(--red);text-align:center;"></div>
+  </div>
+
+  <!-- CROP MODAL -->
+  <div class="crop-modal-overlay" id="cropModalOverlay">
+    <div class="crop-modal">
+      <div class="crop-modal-title">Crop Image — drag to reposition</div>
+      <div class="crop-modal-img-wrap">
+        <img id="cropImg" src="" alt="">
+      </div>
+      <label class="crop-confirm-label">
+        <input type="checkbox" id="cropConfirmCheck" onchange="syncCropConfirmBtn()">
+        I confirm this image does not contain text, logos, or sponsor content.
+      </label>
+      <div class="crop-modal-actions">
+        <button class="btn-crop-cancel" onclick="cancelCrop()">Cancel</button>
+        <button class="btn-crop-confirm" id="btnCropConfirm" onclick="confirmCrop()" disabled>Use This Crop</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-msg" id="successMsg">
+    ✓ Submitted! Your event has been received by the Weekly Mix team.
+  </div>
+
+</div>
+
+<script>
+const API_KEY    = 'YrzFaMA83jmEAY4tm0gQJz7SioutA1kU';
+const TM_BASE    = 'https://app.ticketmaster.com/discovery/v2';
+const DIVIDER_IMG = 'https://assets.engagement.ticketmaster.com/images/properties/4261/images/6994def69cfea.png';
+const TW_LOGO_URL = 'assets/ticketweb-white.png';
+const S3_BUCKET  = 'weekly-mix-image';
+const S3_REGION  = 'us-east-1';
+const S3_ACCESS_KEY_ID     = '__S3_ACCESS_KEY_ID__';
+const S3_SECRET_ACCESS_KEY = '__S3_SECRET_ACCESS_KEY__';
+const LAMBDA_ENDPOINT = 'https://uu8lkytqe5.execute-api.us-east-1.amazonaws.com/submit';
+
+let currentEvent = null;
+let uploadedImageUrl = '';
+
+// ── URL PARSING & LOOKUP ──
+
+async function findEvent() {
+  const raw = document.getElementById('urlInput').value.trim();
+  const btn = document.getElementById('findBtn');
+
+  if (!raw) { setStatus('Paste a URL first.', 'error'); return; }
+
+  const twMatch = raw.match(/ticketweb\.com\/event\/([^/?]+)\/(\d+)/i);
+  const tmSlugBeforeMatch = raw.match(/ticketmaster\.com\/([A-Za-z0-9-]+)\/event\/([A-Za-z0-9]+)/i);
+  const tmIdOnlyMatch = !tmSlugBeforeMatch && raw.match(/ticketmaster\.com\/event\/([A-Za-z0-9]+)/i);
+  const tmMatch = tmSlugBeforeMatch || tmIdOnlyMatch;
+
+  if (!twMatch && !tmMatch) {
+    setStatus('Could not recognize that URL. Paste a Ticketmaster or TicketWeb event URL.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Looking up event…';
+  setStatus('', '');
+
+  try {
+    let fetchUrl, eventId = null;
+
+    if (twMatch) {
+      const slug = twMatch[1].replace(/-tickets?$/i, '').replace(/-/g, ' ');
+      fetchUrl = `${TM_BASE}/events.json?apikey=${API_KEY}&keyword=${encodeURIComponent(slug)}&countryCode=US&size=10`;
+    } else {
+      const tmSlug = tmMatch[2] ? tmMatch[1] : null;
+      eventId = tmMatch[2] || tmMatch[1];
+      const fullKeyword = tmSlug ? tmSlug.replace(/-tickets?$/i, '').replace(/-/g, ' ') : eventId;
+      const keyword = fullKeyword.split(' ').slice(0, 4).join(' ');
+      fetchUrl = `${TM_BASE}/events.json?apikey=${API_KEY}&keyword=${encodeURIComponent(keyword)}&countryCode=US&size=10`;
+    }
+
+    const res = await fetch(fetchUrl);
+    const data = await res.json();
+    if (!res.ok || data.errors || data.fault) {
+      throw new Error(data.errors?.[0]?.detail || data.fault?.faultstring || `API error: ${res.status}`);
+    }
+
+    const events = data._embedded?.events || [];
+    if (!events.length) throw new Error('Event not found. Try a different URL.');
+
+    let event;
+    if (eventId) {
+      event = events.find(e => e.url && e.url.toLowerCase().includes(eventId.toLowerCase())) || events[0];
+    } else {
+      event = events[0];
+    }
+    if (!event) throw new Error('Event not found.');
+
+    currentEvent = event;
+    populateForm(event, raw);
+    renderPreview();
+    showCascade();
+    setStatus('', '');
+  } catch(e) {
+    setStatus(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Generate Submission';
+  }
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('statusLine');
+  el.textContent = msg;
+  el.className = 'status-line' + (type ? ' ' + type : '');
+}
+
+// ── POPULATE FORM ──
+
+function populateForm(event, originalUrl) {
+  document.getElementById('f-eventName').value = event.name || '';
+
+  let ticketUrl = originalUrl;
+  if (originalUrl.includes('ticketweb.com')) {
+    ticketUrl = originalUrl + (originalUrl.includes('?') ? '&' : '?') + 'REFERRAL_ID=weeklymix';
+  }
+  document.getElementById('f-ticketUrl').value = ticketUrl;
+
+  const city = event._embedded?.venues?.[0]?.city?.name || '';
+  if (city) document.getElementById('f-market').value = city;
+
+  const img = getBestImage(event, 600);
+  if (img) document.getElementById('f-imageUrl').value = img;
+}
+
+// ── RENDER PREVIEW (reads live field values) ──
+
+function renderPreview() {
+  if (!currentEvent) return;
+  const e = currentEvent;
+
+  const card = document.getElementById('previewCard');
+  const city  = e._embedded?.venues?.[0]?.city?.name?.toUpperCase() || '';
+  const meta  = buildVenueMeta(e);
+  const dateStr = formatDate(e.dates?.start?.localDate);
+
+  // Read live form values
+  const name      = document.getElementById('f-eventName').value.trim() || e.name;
+  const prefix    = document.getElementById('f-prefix').value.trim();
+  const subtitle  = document.getElementById('f-subtitle').value.trim();
+  const ticketUrl = document.getElementById('f-ticketUrl').value.trim() || e.url || '#';
+  const imgUrl    = uploadedImageUrl || document.getElementById('f-imageUrl').value.trim() || getBestImage(e, 400);
+
+  card.innerHTML = `
+    <div class="pc-header">
+      <img src="${escAttr(TW_LOGO_URL)}" alt="TicketWeb" style="height:19px;width:auto;display:block;margin:0 auto 10px;">
+      <div class="pc-eyebrow">The Weekly Mix</div>
+      <div class="pc-city">${esc(city || name)}</div>
+    </div>
+    <img src="${escAttr(DIVIDER_IMG)}" alt="" class="pc-divider">
+    <div class="pc-event-row">
+      ${imgUrl
+        ? `<div class="pc-img"><img src="${escAttr(imgUrl)}" alt=""></div>`
+        : `<div class="pc-img-placeholder">No image</div>`}
+      <div class="pc-info">
+        ${prefix ? `<div class="pc-prefix">${esc(prefix)}</div>` : ''}
+        <div class="pc-name">${esc(name)}</div>
+        ${subtitle ? `<div class="pc-subtitle">${esc(subtitle)}</div>` : ''}
+        ${meta ? `<div class="pc-meta">${esc(meta)}</div>` : ''}
+        ${dateStr ? `<div class="pc-date">${dateStr}</div>` : ''}
+        <a class="pc-btn" href="${escAttr(ticketUrl)}" target="_blank" rel="noopener">Get Tickets</a>
+      </div>
+    </div>
+  `;
+}
+
+function updatePreview() {
+  if (currentEvent) renderPreview();
+}
+
+function buildVenueMeta(event) {
+  const v = event._embedded?.venues?.[0];
+  if (!v) return '';
+  const name = v.name || '';
+  const city = v.city?.name || '';
+  const state = v.state?.stateCode || v.state?.name || '';
+  const cityState = state ? `${city}, ${state}` : city;
+  return name && cityState ? `${name} | ${cityState}` : name || cityState;
+}
+
+// ── CASCADE IN ──
+
+function showCascade() {
+  ['previewSection', 'formSection'].forEach((id, i) => {
+    setTimeout(() => document.getElementById(id).classList.add('visible'), i * 120);
+  });
+}
+
+// ── SUBMIT ──
+
+async function submitForm() {
+  let valid = true;
+  [
+    { id: 'f-eventName', fg: 'fg-eventName' },
+    { id: 'f-ticketUrl', fg: 'fg-ticketUrl' },
+    { id: 'f-email',     fg: 'fg-email' },
+  ].forEach(({ id, fg }) => {
+    const val = document.getElementById(id).value.trim();
+    const fgEl = document.getElementById(fg);
+    if (!val || (id === 'f-email' && !val.includes('@'))) {
+      fgEl.classList.add('has-error'); valid = false;
+    } else {
+      fgEl.classList.remove('has-error');
+    }
+  });
+  if (!valid) return;
+
+  const btn = document.querySelector('.btn-submit');
+  const errEl = document.getElementById('submitError');
+  btn.disabled = true;
+  btn.textContent = 'Submitting…';
+  errEl.style.display = 'none';
+
+  try {
+    const payload = {
+      name:      document.getElementById('f-eventName').value.trim(),
+      prefix:    document.getElementById('f-prefix').value.trim(),
+      subtitle:  document.getElementById('f-subtitle').value.trim(),
+      ticketUrl: document.getElementById('f-ticketUrl').value.trim(),
+      imageUrl:  uploadedImageUrl || document.getElementById('f-imageUrl').value.trim(),
+      market:    document.getElementById('f-market').value.trim(),
+      email:     document.getElementById('f-email').value.trim(),
+      notes:     document.getElementById('f-notes').value.trim(),
+    };
+
+    const res = await fetch(LAMBDA_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Server error (${res.status})`);
+
+    document.getElementById('previewSection').style.display = 'none';
+    document.getElementById('formSection').style.display = 'none';
+    document.getElementById('successMsg').style.display = 'block';
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Submit to Weekly Mix';
+  }
+}
+
+// ── IMAGE UPLOAD ──
+
+const CROP_RATIO = 16 / 9;
+const CROP_TOLERANCE = 0.15;
+let cropperInstance = null;
+let pendingUploadFile = null;
+
+function handleImgDrop(event) {
+  event.preventDefault();
+  document.getElementById('imgDropZone').classList.remove('dragover');
+  const file = event.dataTransfer?.files?.[0];
+  if (file && file.type.startsWith('image/')) maybeShowCropModal(file);
+}
+
+function handleImgFile(event) {
+  const file = event.target.files?.[0];
+  if (file && file.type.startsWith('image/')) maybeShowCropModal(file);
+  event.target.value = '';
+}
+
+function maybeShowCropModal(file) {
+  // Reject non-JPG/PNG
+  if (!['image/jpeg', 'image/png'].includes(file.type)) {
+    setDropStatus('Only JPG and PNG files are accepted.', false);
+    return;
+  }
+
+  const warnings = [];
+  if (file.size > 3 * 1024 * 1024) {
+    warnings.push('File is larger than 3MB — consider compressing before uploading.');
+  }
+
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = function() {
+    if (img.naturalWidth < 2426 || img.naturalHeight < 1365) {
+      warnings.push(`Image is ${img.naturalWidth}×${img.naturalHeight}px — recommended minimum is 2426×1365.`);
+    }
+
+    if (warnings.length) {
+      setDropStatus('⚠ ' + warnings.join(' '), false);
+    }
+
+    const ratio = img.naturalWidth / img.naturalHeight;
+    URL.revokeObjectURL(url);
+    if (Math.abs(ratio - CROP_RATIO) <= CROP_TOLERANCE) {
+      uploadImageFile(file);
+    } else {
+      openCropModal(file);
+    }
+  };
+  img.src = url;
+}
+
+function openCropModal(file) {
+  pendingUploadFile = file;
+  const url = URL.createObjectURL(file);
+  const cropImg = document.getElementById('cropImg');
+  cropImg.src = url;
+
+  if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+
+  document.getElementById('cropModalOverlay').classList.add('open');
+
+  cropImg.onload = function() {
+    cropperInstance = new Cropper(cropImg, {
+      aspectRatio: CROP_RATIO,
+      viewMode: 1,
+      dragMode: 'crop',
+      autoCropArea: 0.9,
+      restore: false,
+      guides: false,
+      center: false,
+      highlight: false,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false,
+      ready: drawSafeZone,
+      cropend: drawSafeZone,
+      zoom: drawSafeZone,
+    });
+  };
+}
+
+function syncCropConfirmBtn() {
+  const checked = document.getElementById('cropConfirmCheck')?.checked;
+  const btn = document.getElementById('btnCropConfirm');
+  if (btn) btn.disabled = !checked;
+}
+
+function cancelCrop() {
+  closeCropModal();
+}
+
+function confirmCrop() {
+  if (!cropperInstance) return;
+  const canvas = cropperInstance.getCroppedCanvas({ width: 800, height: 600 });
+  canvas.toBlob(function(blob) {
+    const ext = (pendingUploadFile?.name || 'image.jpg').split('.').pop();
+    const croppedFile = new File([blob], pendingUploadFile?.name || `cropped.${ext}`, { type: blob.type });
+    closeCropModal();
+    uploadImageFile(croppedFile);
+  }, 'image/jpeg', 0.92);
+}
+
+function closeCropModal() {
+  document.getElementById('cropModalOverlay').classList.remove('open');
+  if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+  const cropImg = document.getElementById('cropImg');
+  if (cropImg.src.startsWith('blob:')) URL.revokeObjectURL(cropImg.src);
+  cropImg.src = '';
+  pendingUploadFile = null;
+  // Reset checkbox and button state
+  const cb = document.getElementById('cropConfirmCheck');
+  if (cb) cb.checked = false;
+  syncCropConfirmBtn();
+  // Remove safe zone canvas if present
+  const existing = document.getElementById('safeZoneCanvas');
+  if (existing) existing.remove();
+}
+
+function drawSafeZone() {
+  if (!cropperInstance) return;
+  const existing = document.getElementById('safeZoneCanvas');
+  if (existing) existing.remove();
+
+  const cropBox = cropperInstance.getCropBoxData();
+  const container = cropperInstance.getContainerData();
+
+  // 4:3 safe zone centered within the 16:9 crop box
+  const safeH = cropBox.height;
+  const safeW = safeH * (4 / 3);
+  const safeX = cropBox.left + (cropBox.width - safeW) / 2;
+  const safeY = cropBox.top;
+
+  const canvas = document.createElement('canvas');
+  canvas.id = 'safeZoneCanvas';
+  canvas.width = container.width;
+  canvas.height = container.height;
+  canvas.style.cssText = `
+    position:absolute;
+    top:0;left:0;
+    width:${container.width}px;
+    height:${container.height}px;
+    pointer-events:none;
+    z-index:10;
+  `;
+
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([5, 4]);
+  ctx.strokeRect(safeX, safeY, safeW, safeH);
+
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.45)';
+  ctx.fillText('Safe Zone', safeX + 6, safeY + 15);
+
+  // Attach to the cropper's container element
+  const cropperContainer = document.querySelector('.crop-modal-img-wrap .cropper-container');
+  if (cropperContainer) {
+    cropperContainer.style.position = 'relative';
+    cropperContainer.appendChild(canvas);
+  }
+}
+
+function onImageUrlPaste() {
+  const val = document.getElementById('f-imageUrl').value.trim();
+  uploadedImageUrl = '';
+  if (val) {
+    const thumb = document.getElementById('imgThumb');
+    thumb.innerHTML = `<img src="${escAttr(val)}" alt="">`;
+    thumb.style.display = 'block';
+  }
+  updatePreview();
+}
+
+async function uploadImageFile(file) {
+  if (!S3_ACCESS_KEY_ID || S3_ACCESS_KEY_ID.startsWith('__')) {
+    setDropStatus('S3 upload unavailable in local preview — paste an image URL instead.', false);
+    return;
+  }
+  const zone = document.getElementById('imgDropZone');
+  zone.classList.add('uploading');
+  setDropStatus('Uploading…', false);
+  try {
+    const key = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const presignedUrl = await s3PresignedPut(key);
+    const res = await fetch(presignedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      body: file,
+    });
+    if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+    const url = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${key}`;
+    uploadedImageUrl = url;
+    document.getElementById('f-imageUrl').value = url;
+    const thumb = document.getElementById('imgThumb');
+    thumb.innerHTML = `<img src="${escAttr(url)}" alt="">`;
+    thumb.style.display = 'block';
+    zone.classList.remove('uploading');
+    zone.classList.add('has-image');
+    setDropStatus('✓ Uploaded — ' + file.name, true);
+    updatePreview();
+  } catch(e) {
+    zone.classList.remove('uploading');
+    setDropStatus('Upload failed: ' + e.message, false);
+  }
+}
+
+function setDropStatus(msg, success) {
+  const label = document.getElementById('dropLabel');
+  label.innerHTML = `<span style="color:${success ? 'var(--green)' : 'var(--text3)'}">${esc(msg)}</span>`;
+}
+
+// ── S3 SIGNING (exact copy from index.html) ──
+
+function toHex(buf) {
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function sha256(data) {
+  const buf = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+  return toHex(await crypto.subtle.digest('SHA-256', buf));
+}
+async function hmacSha256(key, msg) {
+  const k = key instanceof Uint8Array ? key : new TextEncoder().encode(key);
+  const ck = await crypto.subtle.importKey('raw', k, {name:'HMAC',hash:'SHA-256'}, false, ['sign']);
+  const m = typeof msg === 'string' ? new TextEncoder().encode(msg) : msg;
+  return new Uint8Array(await crypto.subtle.sign('HMAC', ck, m));
+}
+async function getS3SigningKey(secret, date, region) {
+  let k = await hmacSha256('AWS4' + secret, date);
+  k = await hmacSha256(k, region);
+  k = await hmacSha256(k, 's3');
+  return hmacSha256(k, 'aws4_request');
+}
+async function s3PresignedPut(key) {
+  const now = new Date();
+  const ymd = now.toISOString().slice(0,10).replace(/-/g,'');
+  const dt  = now.toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  const host = `${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
+  const scope = `${ymd}/${S3_REGION}/s3/aws4_request`;
+  const params = [
+    ['X-Amz-Algorithm','AWS4-HMAC-SHA256'],
+    ['X-Amz-Credential',`${S3_ACCESS_KEY_ID}/${scope}`],
+    ['X-Amz-Date',dt],
+    ['X-Amz-Expires','300'],
+    ['X-Amz-SignedHeaders','host'],
+  ].sort((a,b) => a[0].localeCompare(b[0]));
+  const qs = params.map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
+  const canonicalReq = `PUT\n/${key}\n${qs}\nhost:${host}\n\nhost\nUNSIGNED-PAYLOAD`;
+  const sts = `AWS4-HMAC-SHA256\n${dt}\n${scope}\n${await sha256(canonicalReq)}`;
+  const sigKey = await getS3SigningKey(S3_SECRET_ACCESS_KEY, ymd, S3_REGION);
+  const sig = toHex(await hmacSha256(sigKey, sts));
+  return `https://${host}/${key}?${qs}&X-Amz-Signature=${sig}`;
+}
+
+// ── HELPERS ──
+
+function getBestImage(ev, targetW) {
+  if (!ev.images || !ev.images.length) return '';
+  return [...ev.images].sort((a,b) => Math.abs(a.width-targetW) - Math.abs(b.width-targetW))[0].url;
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-').map(Number);
+  const dt = new Date(y, m-1, day);
+  const days   = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  return `${days[dt.getDay()]}, ${months[dt.getMonth()]} ${dt.getDate()}`;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) { return esc(s).replace(/'/g,'&#39;'); }
+</script>
+</body>
+</html>
