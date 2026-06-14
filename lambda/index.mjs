@@ -78,7 +78,6 @@ export const handler = async (event) => {
         Key: key,
         Body: Buffer.from(image, 'base64'),
         ContentType: contentType,
-        ACL: 'public-read',
       }));
       const url = `https://weekly-mix-image.s3.us-east-1.amazonaws.com/${key}`;
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ url }) };
