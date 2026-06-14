@@ -319,8 +319,9 @@
   .sub-card-actions { display:flex;gap:8px;margin-top:10px; }
   .btn-add-to-campaign { padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer; }
   .btn-add-to-campaign:hover { opacity:0.85; }
-  .btn-mark-used { padding:6px 12px;background:var(--surface3);color:var(--text2);border:1px solid var(--border2);border-radius:6px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer; }
-  .btn-mark-used:hover { background:var(--surface); }
+  .sub-card-city { font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;flex-shrink:0;text-align:right; }
+  .btn-delete-event { padding:6px 12px;background:transparent;color:#e53e3e;border:1px solid #e53e3e;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer; }
+  .btn-delete-event:hover { background:rgba(229,62,62,0.08); }
 
   /* ── UTILS ── */
   .flex { display: flex; }
@@ -383,11 +384,11 @@
 <!-- HEADER -->
 <div class="app-header">
   <div>
+    <h1>Email Campaign Creator</h1>
     <div style="display:flex;align-items:center;gap:10px">
-      <h1>Email Campaign Creator</h1>
+      <p>Powered by Ticketmaster Discovery API</p>
       <button class="submissions-badge" id="submissionsBadge" onclick="openSubmissionsModal()" style="display:none">● <span id="submissionsCount">0</span> Submissions</button>
     </div>
-    <p>Powered by Ticketmaster Discovery API</p>
   </div>
   <div class="header-actions">
     <button class="btn btn-ghost btn-sm" id="restoreBtn" onclick="restoreSession()" style="display:none" title="Reload the last auto-saved state">
@@ -421,7 +422,10 @@
     <div class="form-group" style="margin-bottom:6px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
         <label style="margin:0">Google Sheets URL</label>
-        <span id="sheetsStatus" class="sheets-status"></span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <a id="sheetsLink" href="#" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none;display:none">Open Sheet ↗</a>
+          <span id="sheetsStatus" class="sheets-status"></span>
+        </div>
       </div>
       <div style="display:flex;gap:6px">
         <input type="text" id="sheetsUrl" placeholder="Paste your published Google Sheets CSV URL" style="font-size:11px" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vQJtz4DpKR8ImmSZ2QOJPgzeQZDuY-72NiDR65Dq9K-p-myyqKSGqBhLubdKjjboad0llw6QfPFKDfB/pub?gid=827949005&single=true&output=csv">
@@ -836,6 +840,8 @@ let currentVenue = null;
 async function loadSheets() {
   const url = v('sheetsUrl').trim();
   if (!url) { showToast('Paste your Google Sheets CSV URL first', 'error'); return; }
+  const link = ge('sheetsLink');
+  if (link) { link.href = url; link.style.display = 'inline'; }
   setStatus('loading', 'Loading...');
   try {
     const res = await fetch(url);
@@ -2037,23 +2043,29 @@ function renderSubmissionsModal() {
     body.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No pending submissions.</div>';
     return;
   }
-  body.innerHTML = pendingSubmissions.map((sub, idx) => `
-    <div class="sub-card" id="subcard-${idx}">
+  const sorted = [...pendingSubmissions].sort((a,b) => (a.market||'').localeCompare(b.market||''));
+  body.innerHTML = sorted.map((sub, idx) => {
+    const origIdx = pendingSubmissions.indexOf(sub);
+    return `
+    <div class="sub-card" id="subcard-${origIdx}">
       ${sub.imageUrl
         ? `<img class="sub-card-thumb" src="${escQ(sub.imageUrl)}" alt="">`
         : `<div class="sub-card-thumb"></div>`}
       <div class="sub-card-info">
-        <div class="sub-card-name">${esc(sub.name||'')}</div>
-        <div class="sub-card-meta">${[sub.market, sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : null, sub.email].filter(Boolean).map(esc).join(' · ')}</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:3px">
+          <div class="sub-card-name">${esc(sub.name||'')}</div>
+          ${sub.market ? `<div class="sub-card-city">${esc(sub.market)}</div>` : ''}
+        </div>
+        <div class="sub-card-meta">${[sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : null, sub.email].filter(Boolean).map(esc).join(' · ')}</div>
         ${sub.subtitle ? `<div class="sub-card-meta" style="margin-top:2px">${esc(sub.subtitle)}</div>` : ''}
         ${sub.ticketUrl ? `<div class="sub-card-meta" style="margin-top:2px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sub.ticketUrl.slice(0,70))}</div>` : ''}
         <div class="sub-card-actions">
-          <button class="btn-add-to-campaign" onclick="addSubmissionToCampaign(${idx})">Add to Campaign</button>
-          <button class="btn-mark-used" onclick="markSubmissionUsed(${idx})">Mark as Used</button>
+          <button class="btn-add-to-campaign" onclick="addSubmissionToCampaign(${origIdx})">Add to Campaign</button>
+          <button class="btn-delete-event" onclick="deleteSubmission(${origIdx})">Delete Event</button>
         </div>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function addSubmissionToCampaign(idx) {
@@ -2093,25 +2105,23 @@ function addSubmissionToCampaign(idx) {
   showToast(`"${sub.name}" added to campaign`, 'success');
 }
 
-async function markSubmissionUsed(idx) {
+async function deleteSubmission(idx) {
   const sub = pendingSubmissions[idx];
   if (!sub) return;
-  if (!confirm('Mark this submission as used? It will be removed from the queue.')) return;
+  if (!confirm('Delete this submission? This cannot be undone.')) return;
   try {
-    const updated = { ...sub, status: 'used' };
-    delete updated._s3Key;
-    const presignedUrl = await s3PresignedPut(sub._s3Key);
-    await fetch(presignedUrl, {
-      method: 'PUT',
+    const res = await fetch('https://uu8lkytqe5.execute-api.us-east-1.amazonaws.com/delete', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updated, null, 2),
+      body: JSON.stringify({ key: sub._s3Key }),
     });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
     pendingSubmissions.splice(idx, 1);
     updateSubmissionsBadge();
     renderSubmissionsModal();
-    showToast('Submission marked as used');
+    showToast('Submission deleted');
   } catch (err) {
-    alert('Failed to mark as used: ' + err.message);
+    alert('Failed to delete: ' + err.message);
   }
 }
 

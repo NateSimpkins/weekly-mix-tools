@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 
 const s3 = new S3Client({ region: process.env.S3_REGION });
 
@@ -29,10 +29,41 @@ async function asanaPost(path, data) {
 }
 
 export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
+  if (event.httpMethod === 'OPTIONS' || event.requestContext?.http?.method === 'OPTIONS') {
     return { statusCode: 204, headers: CORS, body: '' };
   }
 
+  const path = event.rawPath || event.path || '/submit';
+
+  // ── DELETE route ──────────────────────────────────────────────────────────
+  if (path === '/delete') {
+    try {
+      const body = JSON.parse(event.body || '{}');
+      const { key } = body;
+      if (!key || !key.startsWith('submissions/')) {
+        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid key.' }) };
+      }
+      // Fetch existing JSON
+      const getRes = await s3.send(new GetObjectCommand({
+        Bucket: process.env.S3_BUCKET,
+        Key: key,
+      }));
+      const existing = JSON.parse(await getRes.Body.transformToString());
+      // Write back with status: 'used'
+      await s3.send(new PutObjectCommand({
+        Bucket: process.env.S3_BUCKET,
+        Key: key,
+        Body: JSON.stringify({ ...existing, status: 'used' }, null, 2),
+        ContentType: 'application/json',
+      }));
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ success: true }) };
+    } catch (err) {
+      console.error('weekly-mix-delete error:', err);
+      return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
+    }
+  }
+
+  // ── SUBMIT route ──────────────────────────────────────────────────────────
   try {
     const body = JSON.parse(event.body || '{}');
     const { name, prefix, subtitle, ticketUrl, imageUrl, market, email, notes } = body;

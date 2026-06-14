@@ -389,6 +389,12 @@
   }
   .crop-modal-img-wrap img { display: block; max-width: 100%; }
   .crop-modal-img-wrap .cropper-bg { background-image: none; background-color: #000; }
+  /* Hide solid blue crop box — only show dashed overlay */
+  .crop-modal-img-wrap .cropper-view-box { outline: none; }
+  .crop-modal-img-wrap .cropper-face { opacity: 0; }
+  .crop-modal-img-wrap .cropper-line { background-color: transparent; }
+  .crop-modal-img-wrap .cropper-dashed { display: none; }
+  .crop-modal-img-wrap .cropper-point { background-color: rgba(255,255,255,0.7); width: 7px; height: 7px; }
   .crop-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
   .btn-crop-cancel {
     padding: 10px 20px;
@@ -470,7 +476,10 @@
     </div>
 
     <div class="form-group">
-      <label>Image <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional — drag/drop or paste URL)</span></label>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <label style="margin:0">Image <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional — drag/drop or paste URL)</span></label>
+        <button type="button" onclick="openImgReqModal()" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;padding:0;font-family:var(--font);text-decoration:underline;text-underline-offset:2px">Image Requirements</button>
+      </div>
       <div class="img-drop-zone" id="imgDropZone"
         ondragover="event.preventDefault();this.classList.add('dragover')"
         ondragleave="this.classList.remove('dragover')"
@@ -516,6 +525,23 @@
         <button class="btn-crop-cancel" onclick="cancelCrop()">Cancel</button>
         <button class="btn-crop-confirm" id="btnCropConfirm" onclick="confirmCrop()">Use This Crop</button>
       </div>
+    </div>
+  </div>
+
+  <!-- IMAGE REQUIREMENTS MODAL -->
+  <div id="imgReqOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#1a1a1a;border:1px solid #333;border-radius:12px;padding:28px 28px 24px;max-width:420px;width:100%;position:relative">
+      <button onclick="closeImgReqModal()" style="position:absolute;top:14px;right:14px;background:none;border:none;color:#888;cursor:pointer;font-size:18px;line-height:1;padding:4px">✕</button>
+      <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#888;margin-bottom:14px">Image Requirements</div>
+      <ul style="margin:0;padding:0 0 0 18px;color:#ccc;font-size:13px;line-height:1.9;list-style:disc">
+        <li>Minimum 2426×1365px, 72ppi</li>
+        <li>Landscape, 16:9 aspect ratio</li>
+        <li>Must support 4:3 safe zone — subject/face should be centered within it</li>
+        <li>JPG or PNG only, max 3MB</li>
+        <li>No text, logos, or sponsor content of any kind</li>
+        <li>No padding or stretching to achieve required size</li>
+        <li>Live action photos recommended</li>
+      </ul>
     </div>
   </div>
 
@@ -883,36 +909,20 @@ function drawSafeZone() {
   const cropBox = cropperInstance.getCropBoxData();
   const container = cropperInstance.getContainerData();
 
-  // 4:3 safe zone centered within the 16:9 crop box
-  const safeH = cropBox.height;
-  const safeW = safeH * (4 / 3);
-  const safeX = cropBox.left + (cropBox.width - safeW) / 2;
-  const safeY = cropBox.top;
-
   const canvas = document.createElement('canvas');
   canvas.id = 'safeZoneCanvas';
   canvas.width = container.width;
   canvas.height = container.height;
-  canvas.style.cssText = `
-    position:absolute;
-    top:0;left:0;
-    width:${container.width}px;
-    height:${container.height}px;
-    pointer-events:none;
-    z-index:10;
-  `;
+  canvas.style.cssText = `position:absolute;top:0;left:0;width:${container.width}px;height:${container.height}px;pointer-events:none;z-index:10;`;
 
   const ctx = canvas.getContext('2d');
-  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+
+  // Dashed 16:9 border matching the crop box exactly
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)';
   ctx.lineWidth = 1.5;
-  ctx.setLineDash([5, 4]);
-  ctx.strokeRect(safeX, safeY, safeW, safeH);
+  ctx.setLineDash([6, 4]);
+  ctx.strokeRect(cropBox.left, cropBox.top, cropBox.width, cropBox.height);
 
-  ctx.font = '11px sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.fillText('Safe Zone', safeX + 6, safeY + 15);
-
-  // Attach to the cropper's container element
   const cropperContainer = document.querySelector('.crop-modal-img-wrap .cropper-container');
   if (cropperContainer) {
     cropperContainer.style.position = 'relative';
@@ -1032,6 +1042,17 @@ function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 function escAttr(s) { return esc(s).replace(/'/g,'&#39;'); }
+
+function openImgReqModal() {
+  const el = document.getElementById('imgReqOverlay');
+  el.style.display = 'flex';
+}
+function closeImgReqModal() {
+  document.getElementById('imgReqOverlay').style.display = 'none';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeImgReqModal();
+});
 </script>
 </body>
 </html>
