@@ -81,9 +81,9 @@ export const handler = async (event) => {
       projects:  [process.env.ASANA_PROJECT_GID],
     });
 
-    // 3. Add submitter as follower so Asana sends them a notification
+    // 3. Add internal reviewer as follower for Asana notifications
     await asanaPost(`/tasks/${task.gid}/addFollowers`, {
-      followers: [email],
+      followers: ['nate.simpkins@ticketmaster.com'],
     });
 
     return {
