@@ -2006,14 +2006,15 @@ const S3_PUBLIC = 'https://weekly-mix-image.s3.us-east-1.amazonaws.com';
 
 async function loadSubmissions() {
   try {
-    const res = await fetch(`${S3_PUBLIC}/?prefix=submissions/&list-type=2`);
+    const ts = Date.now();
+    const res = await fetch(`${S3_PUBLIC}/?prefix=submissions/&list-type=2&t=${ts}`);
     const text = await res.text();
     const xml = new DOMParser().parseFromString(text, 'application/xml');
     const keys = [...xml.querySelectorAll('Contents Key')].map(el => el.textContent).filter(k => k.endsWith('.json'));
     const submissions = [];
     for (const key of keys) {
       try {
-        const data = await fetch(`${S3_PUBLIC}/${key}`).then(r => r.json());
+        const data = await fetch(`${S3_PUBLIC}/${key}?t=${ts}`).then(r => r.json());
         if (data.status !== 'used') submissions.push({ ...data, _s3Key: key });
       } catch {}
     }
