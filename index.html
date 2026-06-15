@@ -437,7 +437,7 @@
         </div>
       </div>
       <div style="display:flex;gap:6px">
-        <input type="text" id="sheetsUrl" placeholder="Paste your published Google Sheets CSV URL" style="font-size:11px" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vQJtz4DpKR8ImmSZ2QOJPgzeQZDuY-72NiDR65Dq9K-p-myyqKSGqBhLubdKjjboad0llw6QfPFKDfB/pub?gid=827949005&single=true&output=csv">
+        <input type="text" id="sheetsUrl" placeholder="Paste your published Google Sheets CSV URL" style="font-size:11px" value="https://docs.google.com/spreadsheets/d/1Dw414_jnE4sicjpvj_JP884G5ue9NK-ZR61gvzN1lZ4/pub?gid=0&single=true&output=csv">
         <button class="btn btn-outline btn-sm" onclick="loadSheets()" style="flex-shrink:0;padding:6px 10px" title="Load venues">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
         </button>
@@ -975,7 +975,7 @@ function showSheetsHelp() {
 }
 
 // Auto-load venue list on startup
-const HARDCODED_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJtz4DpKR8ImmSZ2QOJPgzeQZDuY-72NiDR65Dq9K-p-myyqKSGqBhLubdKjjboad0llw6QfPFKDfB/pub?gid=827949005&single=true&output=csv';
+const HARDCODED_SHEETS_URL = 'https://docs.google.com/spreadsheets/d/1Dw414_jnE4sicjpvj_JP884G5ue9NK-ZR61gvzN1lZ4/pub?gid=0&single=true&output=csv';
 document.addEventListener('DOMContentLoaded', function() {
   // Always use the hardcoded URL, but allow override from localStorage
   const saved = localStorage.getItem('weeklyMixSheetsUrl');
@@ -2092,6 +2092,10 @@ function renderSubmissionsModal() {
             ${sub.venue ? `<div class="sub-card-venue">${esc(sub.venue)}</div>` : ''}
           </div>` : ''}
         </div>
+        ${(sub.venue||sub.eventDate) ? `<div style="margin-bottom:6px">
+          ${sub.venue ? `<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">${esc(sub.venue)}</div>` : ''}
+          ${sub.eventDate ? `<div style="font-size:11px;color:var(--text3)">${esc(formatDate(sub.eventDate))}</div>` : ''}
+        </div>` : ''}
         <div class="sub-card-submitted-label">Submitted by</div>
         <div class="sub-card-submitted-val">${[sub.email, sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : null].filter(Boolean).map(esc).join(' · ')}</div>
         ${sub.ticketUrl ? `<a class="sub-card-link" href="${escQ(sub.ticketUrl)}" target="_blank" rel="noopener">${esc(sub.ticketUrl.slice(0,65))}</a>` : ''}
