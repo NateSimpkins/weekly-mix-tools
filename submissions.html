@@ -84,13 +84,6 @@
   .page-header-logo { flex-shrink: 0; }
   .page-header-logo img { display: block; width: 110px; height: auto; opacity: 0.9; }
   .header-divider { display: block; width: 100%; height: auto; margin-bottom: 0; }
-  .date-format-callout {
-    font-size: 10px;
-    font-weight: 600;
-    color: #e53e3e;
-    letter-spacing: 0.5px;
-    margin-left: 6px;
-  }
 
   /* ── URL INPUT ── */
   .url-section { margin-bottom: 12px; }
@@ -493,11 +486,6 @@
       <input type="text" id="f-subtitle" placeholder="Supporting act, tour name, etc." oninput="updatePreview()">
     </div>
 
-    <div class="form-group">
-      <label>Date Override <span style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0">(optional)</span><span class="date-format-callout">MM/DD/YYYY</span></label>
-      <input type="text" id="f-dateOverride" placeholder="e.g. 06/21/2026" oninput="updatePreview()">
-    </div>
-
     <div class="form-group" id="fg-ticketUrl">
       <label>Ticket URL <span style="color:var(--red)">*</span></label>
       <input type="text" id="f-ticketUrl" placeholder="https://..." oninput="updatePreview()">
@@ -772,15 +760,16 @@ async function submitForm() {
 
   try {
     const payload = {
-      name:         document.getElementById('f-eventName').value.trim(),
-      prefix:       document.getElementById('f-prefix').value.trim(),
-      subtitle:     document.getElementById('f-subtitle').value.trim(),
-      dateOverride: document.getElementById('f-dateOverride').value.trim(),
-      ticketUrl:    document.getElementById('f-ticketUrl').value.trim(),
-      imageUrl:     uploadedImageUrl || document.getElementById('f-imageUrl').value.trim(),
-      market:       document.getElementById('f-market').value.trim(),
-      email:        document.getElementById('f-email').value.trim(),
-      notes:        document.getElementById('f-notes').value.trim(),
+      name:      document.getElementById('f-eventName').value.trim(),
+      prefix:    document.getElementById('f-prefix').value.trim(),
+      subtitle:  document.getElementById('f-subtitle').value.trim(),
+      eventDate: currentEvent?.dates?.start?.localDate || '',
+      venue:     currentEvent?._embedded?.venues?.[0]?.name || '',
+      ticketUrl: document.getElementById('f-ticketUrl').value.trim(),
+      imageUrl:  uploadedImageUrl || document.getElementById('f-imageUrl').value.trim(),
+      market:    document.getElementById('f-market').value.trim(),
+      email:     document.getElementById('f-email').value.trim(),
+      notes:     document.getElementById('f-notes').value.trim(),
     };
 
     const res = await fetch(LAMBDA_ENDPOINT, {
