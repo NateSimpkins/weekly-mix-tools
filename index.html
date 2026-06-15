@@ -311,17 +311,19 @@
   .subs-modal-close { width:28px;height:28px;background:none;border:none;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px; }
   .subs-modal-close:hover { background:var(--surface3); }
   .subs-modal-body { padding:18px 22px;display:flex;flex-direction:column;gap:12px; }
-  .sub-card { background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;gap:12px;align-items:flex-start; }
-  .sub-card-thumb { width:72px;height:54px;border-radius:4px;object-fit:cover;background:var(--surface3);flex-shrink:0; }
+  .sub-card { background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;display:flex;gap:14px;align-items:flex-start; }
+  .sub-card-thumb { width:80px;height:60px;border-radius:5px;object-fit:cover;background:var(--surface3);flex-shrink:0; }
   .sub-card-info { flex:1;min-width:0; }
-  .sub-card-name { font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px; }
-  .sub-card-meta { font-size:11px;color:var(--text3); }
-  .sub-card-actions { display:flex;gap:8px;margin-top:10px; }
-  .btn-add-to-campaign { padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer; }
-  .btn-add-to-campaign:hover { opacity:0.85; }
+  .sub-card-name { font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px; }
+  .sub-card-meta { font-size:13px;font-weight:700;color:var(--text);line-height:1.4; }
+  .sub-card-link { font-size:11px;color:var(--accent);text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px; }
+  .sub-card-link:hover { text-decoration:underline; }
+  .sub-card-actions { margin-top:12px; }
+  .btn-add-to-campaign { display:block;width:100%;padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;text-align:center; }
+  .btn-add-to-campaign:hover { opacity:0.87; }
   .sub-card-city { font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;flex-shrink:0;text-align:right; }
-  .btn-delete-event { padding:6px 12px;background:transparent;color:#e53e3e;border:1px solid #e53e3e;border-radius:6px;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer; }
-  .btn-delete-event:hover { background:rgba(229,62,62,0.08); }
+  .btn-delete-event { display:block;width:100%;margin-top:7px;padding:5px;background:transparent;color:var(--text3);border:none;font-family:var(--font);font-size:11px;cursor:pointer;text-align:center;text-decoration:underline;text-underline-offset:2px; }
+  .btn-delete-event:hover { color:#e53e3e; }
 
   /* ── UTILS ── */
   .flex { display: flex; }
@@ -680,6 +682,10 @@
                       <div class="form-group">
                         <label>Subtitle (leave blank to use date/time)</label>
                         <input type="text" id="spotlightSubtitle" oninput="regenerate()" placeholder="FRI, MAR 20 - 7:00 PM">
+                      </div>
+                      <div class="form-group">
+                        <label>Editorial Copy <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(optional — appears below image)</span></label>
+                        <textarea id="spotlightDescription" oninput="regenerate()" placeholder="e.g. A night of indie folk and good vibes..." style="min-height:64px;resize:vertical"></textarea>
                       </div>
                       <div class="form-group">
                         <label>Button Text</label>
@@ -1563,6 +1569,7 @@ function _regenerateNow() {
     const btnText=v('spotlightButtonText')||v('buttonText')||'Buy Now';
     const imgUrl=imageOverrides[spotlightEv.id]||getBestImage(spotlightEv,cfg.cw)||'';
     const url=ov.url||getTicketUrl(spotlightEv);
+    const spotlightDesc=v('spotlightDescription')||'';
     html+=`<tr><td align="center" style="padding:20px 20px 10px 20px;background-color:${cfg.bg};"><h2 style="margin:0;font-family:${cfg.font};font-size:24px;font-weight:bold;color:${cfg.text};text-transform:uppercase;letter-spacing:2px;">${v('spotlightHeaderText')||'SPOTLIGHT SHOW'}</h2></td></tr>
         <tr><td align="center" style="padding:10px 20px;background-color:${cfg.bg};"><a href="${url}" target="_blank" style="display:block;"><img src="${imgUrl}" alt="${escQ(spotlightEv.name)}" width="${cfg.cw-40}" style="display:block;max-width:100%;height:auto;"/></a></td></tr>
         <tr><td align="center" style="padding:20px;background-color:${cfg.bg};">
@@ -1571,6 +1578,7 @@ function _regenerateNow() {
           ${ov.titleBreak?`<h2 style="margin:0;font-family:${cfg.font};font-size:${cfg.hSize}px;font-weight:bold;color:${cfg.heading};text-transform:uppercase;">${ov.titleBreak}</h2>`:''}
           ${ov.subtitle?`<p style="margin:4px 0 0 0;font-family:${cfg.font};font-size:14px;color:${cfg.text};">${ov.subtitle}</p>`:''}
           ${ge('spotlightShowVenue').checked&&spotlightEv._embedded?.venues?.[0]?`<p style="margin:4px 0 0 0;font-family:${cfg.font};font-size:${cfg.bSize}px;color:${cfg.text};">${getVenueName(spotlightEv)}${getCityState(spotlightEv)?' | '+getCityState(spotlightEv):''}</p>`:''}
+          ${spotlightDesc?`<p style="margin:12px 0 0 0;font-family:${cfg.font};font-size:${cfg.dSize}px;color:${cfg.text};max-width:${cfg.cw-40}px;text-align:center;">${spotlightDesc.replace(/\n/g,'<br/>')}</p>`:''}
           <p style="margin:8px 0 16px 0;font-family:${cfg.font};font-size:${cfg.dSize}px;color:${cfg.text};">${subtitle}</p>
           ${cfg.showButton?`<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="background-color:${cfg.btnBg};border-radius:${cfg.radius}px;"><a href="${url}" target="_blank" style="display:inline-block;padding:14px 40px;font-family:${cfg.font};font-size:14px;font-weight:bold;color:${cfg.btnText};text-decoration:none;text-transform:uppercase;">${btnText}</a></td></tr></table>`:''}
         </td></tr>`;
@@ -1777,6 +1785,7 @@ function buildCampaignData(name) {
     eventOverrides, imageOverrides,
     emailConfig:{
       spotlightHeaderText:v('spotlightHeaderText'),spotlightPrefix:v('spotlightPrefix'),spotlightTitle:v('spotlightTitle'),spotlightSubtitle:v('spotlightSubtitle'),
+      spotlightDescription:v('spotlightDescription'),
       spotlightButtonText:v('spotlightButtonText'),spotlightShowVenue:ge('spotlightShowVenue').checked,
       comingSoonHeaderText:v('comingSoonHeaderText'),showImage:ge('showImage').checked,showDate:ge('showDate').checked,
       showTime:ge('showTime').checked,showVenue:ge('showVenue').checked,showButton:ge('showButton').checked,
@@ -1810,6 +1819,7 @@ async function applyCampaignData(data) {
   setField('spotlightHeaderText',cfg.spotlightHeaderText??'SPOTLIGHT SHOW');
   setField('spotlightPrefix',cfg.spotlightPrefix??'');
   setField('spotlightTitle',cfg.spotlightTitle??''); setField('spotlightSubtitle',cfg.spotlightSubtitle??'');
+  setField('spotlightDescription',cfg.spotlightDescription??'');
   setField('spotlightButtonText',cfg.spotlightButtonText??'Buy Now');
   setCheck('spotlightShowVenue',cfg.spotlightShowVenue);
   setField('comingSoonHeaderText',cfg.comingSoonHeaderText??'COMING SOON');
@@ -2062,13 +2072,12 @@ function renderSubmissionsModal() {
         ? `<img class="sub-card-thumb" src="${escQ(sub.imageUrl)}" alt="">`
         : `<div class="sub-card-thumb"></div>`}
       <div class="sub-card-info">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:3px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">
           <div class="sub-card-name">${esc(sub.name||'')}</div>
           ${sub.market ? `<div class="sub-card-city">${esc(sub.market)}</div>` : ''}
         </div>
         <div class="sub-card-meta">${[sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : null, sub.email].filter(Boolean).map(esc).join(' · ')}</div>
-        ${sub.subtitle ? `<div class="sub-card-meta" style="margin-top:2px">${esc(sub.subtitle)}</div>` : ''}
-        ${sub.ticketUrl ? `<div class="sub-card-meta" style="margin-top:2px;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(sub.ticketUrl.slice(0,70))}</div>` : ''}
+        ${sub.ticketUrl ? `<a class="sub-card-link" href="${escQ(sub.ticketUrl)}" target="_blank" rel="noopener">${esc(sub.ticketUrl.slice(0,65))}</a>` : ''}
         <div class="sub-card-actions">
           <button class="btn-add-to-campaign" onclick="addSubmissionToCampaign(${origIdx})">Add to Campaign</button>
           <button class="btn-delete-event" onclick="deleteSubmission(${origIdx})">Delete Event</button>
@@ -2096,9 +2105,18 @@ function addSubmissionToCampaign(idx) {
   if (!allEvents.find(e => e.id === id)) allEvents.push(fakeEvent);
   if (!selectedEvents.find(e => e.id === id)) selectedEvents.push(fakeEvent);
   filteredEvents = [...allEvents];
-  if (sub.prefix || sub.subtitle) {
-    eventOverrides[id] = { prefix: sub.prefix || '', subtitle: sub.subtitle || '' };
+  const ov = {};
+  if (sub.prefix)   ov.prefix   = sub.prefix;
+  if (sub.subtitle) ov.subtitle = sub.subtitle;
+  if (sub.dateOverride) {
+    const parts = sub.dateOverride.split('/');
+    if (parts.length === 3) {
+      const [mm, dd, yyyy] = parts;
+      const iso = `${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+      ov.date = formatDate(iso);
+    }
   }
+  if (Object.keys(ov).length) eventOverrides[id] = ov;
   if (sub.imageUrl) imageOverrides[id] = sub.imageUrl;
   ge('mainContent').style.display = 'block';
   ge('resultsHeader').style.display = 'flex';
