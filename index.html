@@ -2092,10 +2092,10 @@ function renderSubmissionsModal() {
             ${sub.venue ? `<div class="sub-card-venue">${esc(sub.venue)}</div>` : ''}
           </div>` : ''}
         </div>
-        ${(sub.venue||sub.eventDate) ? `<div style="margin-bottom:6px">
-          ${sub.venue ? `<div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">${esc(sub.venue)}</div>` : ''}
-          ${sub.eventDate ? `<div style="font-size:11px;color:var(--text3)">${esc(formatDate(sub.eventDate))}</div>` : ''}
-        </div>` : ''}
+        <div style="margin-bottom:6px">
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">${esc(sub.venue||'—')}</div>
+          <div style="font-size:11px;color:var(--text3)">${sub.eventDate ? esc(formatDate(sub.eventDate)) : '—'}</div>
+        </div>
         <div class="sub-card-submitted-label">Submitted by</div>
         <div class="sub-card-submitted-val">${[sub.email, sub.submittedAt ? new Date(sub.submittedAt).toLocaleDateString() : null].filter(Boolean).map(esc).join(' · ')}</div>
         ${sub.ticketUrl ? `<a class="sub-card-link" href="${escQ(sub.ticketUrl)}" target="_blank" rel="noopener">${esc(sub.ticketUrl.slice(0,65))}</a>` : ''}
