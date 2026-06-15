@@ -1657,8 +1657,17 @@ function updateOutput() {
 
 // -- HELPERS --
 function getBestImage(ev, targetW) {
-  if (!ev.images||!ev.images.length) return '';
-  return [...ev.images].sort((a,b)=>Math.abs(a.width-targetW)-Math.abs(b.width-targetW))[0].url;
+  if (!ev?.images?.length) return '';
+  // Only consider images with a real URL and a positive width (width=0 entries have no usable URL)
+  const valid = ev.images.filter(i => i.url && i.width > 0);
+  if (!valid.length) {
+    // Last-ditch: any image with a URL regardless of width metadata
+    return ev.images.find(i => i.url)?.url || '';
+  }
+  // Prefer 16:9 landscape images; fall back to full valid pool
+  const pool16x9 = valid.filter(i => i.ratio === '16_9');
+  const pool = pool16x9.length ? pool16x9 : valid;
+  return pool.sort((a, b) => Math.abs(a.width - targetW) - Math.abs(b.width - targetW))[0].url;
 }
 function formatDate(d) {
   if(!d) return '';
