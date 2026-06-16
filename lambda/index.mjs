@@ -2,11 +2,20 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3
 
 const s3 = new S3Client({ region: process.env.S3_REGION });
 
-const CORS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
+const ALLOWED_ORIGINS = [
+  'https://weekly-mix-builder.netlify.app',
+  'https://weekly-mix-submissions.netlify.app',
+];
+
+function corsHeaders(event) {
+  const origin = event.headers?.origin || event.headers?.Origin || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin':  allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
 
 const ASANA_API = 'https://app.asana.com/api/1.0';
 
@@ -30,7 +39,7 @@ async function asanaPost(path, data) {
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS' || event.requestContext?.http?.method === 'OPTIONS') {
-    return { statusCode: 204, headers: CORS, body: '' };
+    return { statusCode: 204, headers: corsHeaders(event), body: '' };
   }
 
   const path = event.rawPath || event.path || '/submit';
@@ -41,7 +50,7 @@ export const handler = async (event) => {
       const body = JSON.parse(event.body || '{}');
       const { key } = body;
       if (!key || !key.startsWith('submissions/')) {
-        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid key.' }) };
+        return { statusCode: 400, headers: corsHeaders(event), body: JSON.stringify({ error: 'Invalid key.' }) };
       }
       // Fetch existing JSON
       const getRes = await s3.send(new GetObjectCommand({
@@ -56,10 +65,10 @@ export const handler = async (event) => {
         Body: JSON.stringify({ ...existing, status: 'used' }, null, 2),
         ContentType: 'application/json',
       }));
-      return { statusCode: 200, headers: CORS, body: JSON.stringify({ success: true }) };
+      return { statusCode: 200, headers: corsHeaders(event), body: JSON.stringify({ success: true }) };
     } catch (err) {
       console.error('weekly-mix-delete error:', err);
-      return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
+      return { statusCode: 500, headers: corsHeaders(event), body: JSON.stringify({ error: err.message }) };
     }
   }
 
@@ -69,7 +78,7 @@ export const handler = async (event) => {
       const body = JSON.parse(event.body || '{}');
       const { image, contentType } = body;
       if (!image || !contentType) {
-        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'image and contentType are required.' }) };
+        return { statusCode: 400, headers: corsHeaders(event), body: JSON.stringify({ error: 'image and contentType are required.' }) };
       }
       const ext = contentType === 'image/png' ? 'png' : 'jpg';
       const key = `images/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -80,10 +89,10 @@ export const handler = async (event) => {
         ContentType: contentType,
       }));
       const url = `https://weekly-mix-image.s3.us-east-1.amazonaws.com/${key}`;
-      return { statusCode: 200, headers: CORS, body: JSON.stringify({ url }) };
+      return { statusCode: 200, headers: corsHeaders(event), body: JSON.stringify({ url }) };
     } catch (err) {
       console.error('weekly-mix-upload error:', err);
-      return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: err.message }) };
+      return { statusCode: 500, headers: corsHeaders(event), body: JSON.stringify({ error: err.message }) };
     }
   }
 
@@ -95,7 +104,7 @@ export const handler = async (event) => {
     if (!name || !ticketUrl || !email) {
       return {
         statusCode: 400,
-        headers: CORS,
+        headers: corsHeaders(event),
         body: JSON.stringify({ error: 'name, ticketUrl, and email are required.' }),
       };
     }
@@ -143,14 +152,14 @@ export const handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: CORS,
+      headers: corsHeaders(event),
       body: JSON.stringify({ success: true }),
     };
   } catch (err) {
     console.error('weekly-mix-submissions error:', err);
     return {
       statusCode: 500,
-      headers: CORS,
+      headers: corsHeaders(event),
       body: JSON.stringify({ error: err.message }),
     };
   }

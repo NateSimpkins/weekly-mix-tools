@@ -857,10 +857,13 @@ async function loadSheets() {
   if (link) { link.href = url; link.style.display = 'inline'; }
   setStatus('loading', 'Loading...');
   try {
+    console.log('[loadSheets] fetching:', url);
     const res = await fetch(url);
     if (!res.ok) throw new Error('Could not fetch sheet');
     const text = await res.text();
+    console.log('[loadSheets] raw CSV (' + text.length + ' chars):', text.slice(0, 500));
     venueData = parseCSV(text);
+    console.log('[loadSheets] parsed rows:', venueData.length, venueData.slice(0, 3));
     if (!venueData.length) throw new Error('No venue data found');
     localStorage.setItem('weeklyMixSheetsUrl', url); // save for next session
     populateMarketDropdown();
@@ -874,8 +877,10 @@ async function loadSheets() {
 
 function parseCSV(text) {
   const lines = text.trim().split('\n');
-  if (lines.length < 2) return [];
+  console.log('[parseCSV] line count:', lines.length, '| header row:', lines[0]);
+  if (lines.length < 2) { console.warn('[parseCSV] too few lines, returning []'); return []; }
   const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g,'').toLowerCase());
+  console.log('[parseCSV] headers:', headers);
   return lines.slice(1).map(line => {
     const cols = [];
     let cur = '', inQ = false;
