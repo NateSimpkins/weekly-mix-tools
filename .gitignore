@@ -2,3 +2,8 @@
 *.DS_Store
 email-campaign-creator*.html
 .env
+
+# Local working notes / scratch — contain infra details, do not publish
+HANDOFF-s3-egress.md
+RUNBOOK-sso-steps.md
+lambda/index.with-list.mjs

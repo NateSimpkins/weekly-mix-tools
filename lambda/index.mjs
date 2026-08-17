@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
 const s3 = new S3Client({ region: process.env.S3_REGION });
 
@@ -12,7 +12,8 @@ function corsHeaders(event) {
   const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
   return {
     'Access-Control-Allow-Origin':  allowedOrigin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    // GET added for the /list route below. Was 'POST, OPTIONS'.
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   };
 }
@@ -43,6 +44,70 @@ export const handler = async (event) => {
   }
 
   const path = event.rawPath || event.path || '/submit';
+
+  // ── LIST route ────────────────────────────────────────────────────────────
+  // Replaces the browser's anonymous ListObjectsV2 + N sequential GETs.
+  // Requires s3:ListBucket on the bucket ARN in the execution role.
+  if (path === '/list') {
+    try {
+      const keys = [];
+      let ContinuationToken;
+      do {
+        const page = await s3.send(new ListObjectsV2Command({
+          Bucket: process.env.S3_BUCKET,
+          Prefix: 'submissions/',
+          ContinuationToken,
+        }));
+        for (const obj of page.Contents || []) {
+          if (obj.Key.endsWith('.json')) keys.push(obj.Key);
+        }
+        ContinuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+      } while (ContinuationToken);
+
+      // Parallel instead of the serial for-await the browser was doing.
+      const settled = await Promise.allSettled(keys.map(async (key) => {
+        const res = await s3.send(new GetObjectCommand({
+          Bucket: process.env.S3_BUCKET,
+          Key: key,
+        }));
+        const data = JSON.parse(await res.Body.transformToString());
+        return { ...data, _s3Key: key };
+      }));
+
+      const failures = settled.filter(r => r.status === 'rejected');
+      if (failures.length) {
+        // Surfaced instead of swallowed, unlike the old `catch {}`.
+        console.warn(`/list: ${failures.length} of ${keys.length} objects unreadable`,
+          failures.map(f => f.reason?.message));
+      }
+
+      const submissions = settled
+        .filter(r => r.status === 'fulfilled' && r.value.status !== 'used')
+        .map(r => r.value);
+
+      return {
+        statusCode: 200,
+        headers: {
+          ...corsHeaders(event),
+          'Content-Type':  'application/json',
+          // Server-side freshness control. This is what makes the ?t= cache-buster
+          // unnecessary rather than merely relocated.
+          'Cache-Control': 'no-store',
+        },
+        body: JSON.stringify({
+          submissions,
+          meta: { total: keys.length, returned: submissions.length, unreadable: failures.length },
+        }),
+      };
+    } catch (err) {
+      console.error('weekly-mix-list error:', err);
+      return {
+        statusCode: 500,
+        headers: corsHeaders(event),
+        body: JSON.stringify({ error: err.message }),
+      };
+    }
+  }
 
   // ── DELETE route ──────────────────────────────────────────────────────────
   if (path === '/delete') {
@@ -87,6 +152,8 @@ export const handler = async (event) => {
         Key: key,
         Body: Buffer.from(image, 'base64'),
         ContentType: contentType,
+        // Campaign images never change once written; let clients and proxies keep them.
+        CacheControl: 'public, max-age=2592000, immutable',
       }));
       const url = `https://weekly-mix-image.s3.us-east-1.amazonaws.com/${key}`;
       return { statusCode: 200, headers: corsHeaders(event), body: JSON.stringify({ url }) };

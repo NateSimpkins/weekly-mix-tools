@@ -1492,6 +1492,47 @@ async function s3PresignedPut(key) {
   return `https://${host}/${key}?${qs}&X-Amz-Signature=${sig}`;
 }
 
+// Emails render images at <=600px content width; 1200px covers 2x retina.
+// GIFs pass through untouched (canvas would flatten animation).
+async function compressImageForUpload(file) {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) return file;
+  const MAX_W = 1200, QUALITY = 0.8;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_W / bmp.width);
+    const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bmp, 0, 0, w, h);
+    const px = ctx.getImageData(0, 0, w, h).data;
+    let hasAlpha = false;
+    for (let i = 3; i < px.length; i += 4) if (px[i] < 250) { hasAlpha = true; break; }
+    const type = hasAlpha ? 'image/png' : 'image/jpeg';
+    const blob = await new Promise(r => canvas.toBlob(r, type, QUALITY));
+    if (!blob) {
+      console.warn('compressImageForUpload: toBlob returned null, uploading original:', file.name);
+      return file;
+    }
+    if (blob.size >= file.size) {
+      console.info(`compressImageForUpload: original already smaller, keeping ${file.name}`);
+      return file;
+    }
+    // Keep the extension consistent with the encoded bytes. The S3 key is derived from
+    // this filename, and some email clients and image proxies sniff the extension.
+    const ext = type === 'image/png' ? 'png' : 'jpg';
+    const base = file.name.replace(/\.[^.]+$/, '') || 'image';
+    console.info(
+      `compressImageForUpload: ${file.name} ${(file.size / 1024).toFixed(0)}KB` +
+      ` -> ${base}.${ext} ${(blob.size / 1024).toFixed(0)}KB`
+    );
+    return new File([blob], `${base}.${ext}`, { type });
+  } catch (e) {
+    console.warn('compressImageForUpload failed, uploading original:', file.name, e);
+    return file;
+  }
+}
+
 async function readImageFile(file, id) {
   if (!S3_ACCESS_KEY_ID || S3_ACCESS_KEY_ID.startsWith('__')) {
     showToast('S3 credentials not configured — redeploy the site with credentials set in Netlify.', 'error');
@@ -1500,11 +1541,15 @@ async function readImageFile(file, id) {
   const zone = document.getElementById('dropzone-' + id);
   if (zone) zone.classList.add('uploading');
   try {
+    file = await compressImageForUpload(file);
     const key = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
     const presignedUrl = await s3PresignedPut(key);
     const res = await fetch(presignedUrl, {
       method: 'PUT',
-      headers: { 'Content-Type': file.type || 'application/octet-stream' },
+      headers: {
+        'Content-Type': file.type || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=2592000, immutable',
+      },
       body: file,
     });
     if (!res.ok) throw new Error(`Upload failed (${res.status})`);
@@ -2028,25 +2073,19 @@ async function lookupEventUrl() {
 
 let pendingSubmissions = [];
 
-const S3_PUBLIC = 'https://weekly-mix-image.s3.us-east-1.amazonaws.com';
+const API_BASE = 'https://uu8lkytqe5.execute-api.us-east-1.amazonaws.com';
 
 async function loadSubmissions() {
   try {
-    const ts = Date.now();
-    const res = await fetch(`${S3_PUBLIC}/?prefix=submissions/&list-type=2&t=${ts}`);
-    const text = await res.text();
-    const xml = new DOMParser().parseFromString(text, 'application/xml');
-    const keys = [...xml.querySelectorAll('Contents Key')].map(el => el.textContent).filter(k => k.endsWith('.json'));
-    const submissions = [];
-    for (const key of keys) {
-      try {
-        const data = await fetch(`${S3_PUBLIC}/${key}?t=${ts}`).then(r => r.json());
-        if (data.status !== 'used') submissions.push({ ...data, _s3Key: key });
-      } catch {}
-    }
-    pendingSubmissions = submissions;
+    const res = await fetch(`${API_BASE}/list`);
+    if (!res.ok) throw new Error(`/list returned ${res.status}`);
+    const data = await res.json();
+    pendingSubmissions = data.submissions || [];
     updateSubmissionsBadge();
-  } catch {}
+  } catch (e) {
+    console.error('loadSubmissions failed:', e);
+    showToast('Could not load submissions: ' + e.message, 'error');
+  }
 }
 
 function updateSubmissionsBadge() {
@@ -2159,7 +2198,7 @@ async function deleteSubmission(idx) {
   if (!sub) return;
   if (!confirm('Delete this submission? This cannot be undone.')) return;
   try {
-    const res = await fetch('https://uu8lkytqe5.execute-api.us-east-1.amazonaws.com/delete', {
+    const res = await fetch(`${API_BASE}/delete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key: sub._s3Key }),
